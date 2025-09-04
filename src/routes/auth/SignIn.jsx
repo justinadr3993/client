@@ -39,27 +39,56 @@ export default function SignIn() {
     control,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm({
     resolver: yupResolver(schema),
   });
 
   const [alert, setAlert] = useState({ type: "", message: "" });
-  const [rememberMe, setRememberMe] = useState(false); 
-  const [showPassword, setShowPassword] = useState(false); 
+  const [rememberMe, setRememberMe] = useState(() => {
+    // Check if credentials are stored
+    const savedEmail = localStorage.getItem('rememberedEmail');
+    const savedPassword = localStorage.getItem('rememberedPassword');
+    if (savedEmail && savedPassword) {
+      setValue('email', savedEmail);
+      setValue('password', savedPassword);
+      return true;
+    }
+    return false;
+  });
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const [loginUser, { data, error, isLoading }] = useLoginUserMutation();
 
   useEffect(() => {
     if (data) {
+      const { tokens, user } = data;
+      
+      // Store tokens
+      localStorage.setItem("token", tokens.access.token);
+      localStorage.setItem("refreshToken", tokens.refresh.token);
+      localStorage.setItem("user", JSON.stringify(user));
+      
+      // Store credentials if remember me is checked
+      if (rememberMe) {
+        const formData = new FormData(document.querySelector('form'));
+        localStorage.setItem('rememberedEmail', formData.get('email'));
+        localStorage.setItem('rememberedPassword', formData.get('password'));
+      } else {
+        // Clear stored credentials if remember me is unchecked
+        localStorage.removeItem('rememberedEmail');
+        localStorage.removeItem('rememberedPassword');
+      }
+      
       navigate("/");
     } else if (error) {
       setAlert({
         type: "error",
-        message: "Invalid credentials or user not found.",
+        message: error.data?.message || "Invalid credentials or user not found.",
       });
     }
-  }, [data, error, navigate]);
+  }, [data, error, navigate, rememberMe]);
 
   const onSubmit = (formData) => {
     loginUser({ ...formData, rememberMe });
@@ -156,9 +185,9 @@ export default function SignIn() {
           <FormControlLabel
             control={
               <Checkbox
-                value="remember"
-                color="primary"
+                checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
+                color="primary"
               />
             }
             label="Remember me"

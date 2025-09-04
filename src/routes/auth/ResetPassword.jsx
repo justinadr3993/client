@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import {
   TextField,
@@ -11,31 +11,54 @@ import {
   CircularProgress,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useResetPasswordMutation } from "../../services/api/authApi";
 
 export default function ResetPassword() {
   const location = useLocation();
-  const { control, handleSubmit, watch } = useForm();
+  const navigate = useNavigate();
+  const { control, handleSubmit, watch, formState: { errors } } = useForm();
   const [alert, setAlert] = useState(null);
-  const [resetPassword, { isLoading }] = useResetPasswordMutation();
+  const [resetPassword, { isLoading, isSuccess }] = useResetPasswordMutation();
+  const [token, setToken] = useState(null);
 
-  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
-
-  const onSubmit = async (data) => {
+  useEffect(() => {
     const query = new URLSearchParams(location.search);
     const token = query.get("token");
+    if (!token) {
+      setAlert({
+        type: "error",
+        message: "Invalid or missing reset token. Please request a new password reset link.",
+      });
+    }
+    setToken(token);
+  }, [location.search]);
+
+  const onSubmit = async (data) => {
+    if (!token) {
+      setAlert({
+        type: "error",
+        message: "Invalid reset token",
+      });
+      return;
+    }
 
     try {
       await resetPassword({ token, password: data.password }).unwrap();
       setAlert({
         type: "success",
-        message: "Password has been reset successfully.",
+        message: "Password has been reset successfully. You can now sign in with your new password.",
       });
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate("/login");
+      }, 3000);
+      
     } catch (error) {
       setAlert({
         type: "error",
-        message: error.data?.message || "Failed to reset password.",
+        message: error.data?.message || "Failed to reset password. The link may have expired.",
       });
     }
   };
@@ -57,82 +80,95 @@ export default function ResetPassword() {
         <Typography component="h1" variant="h5" gutterBottom>
           Reset Password
         </Typography>
+        
         {alert && (
-          <Alert sx={{ width: "100%" }} severity={alert.type}>
+          <Alert 
+            sx={{ width: "100%", mb: 2 }} 
+            severity={alert.type}
+            onClose={() => !isSuccess && setAlert(null)}
+          >
             {alert.message}
           </Alert>
         )}
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <Controller
-            name="password"
-            control={control}
-            defaultValue=""
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="New Password"
-                type="password"
-                fullWidth
-                required
-                margin="normal"
-              />
-            )}
-          />
-          <Controller
-            name="confirmPassword"
-            control={control}
-            defaultValue=""
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Confirm Password"
-                type="password"
-                fullWidth
-                required
-                margin="normal"
-                onChange={(e) => {
-                  field.onChange(e);
-                  setConfirmPasswordTouched(true);
-                }}
-                error={confirmPasswordTouched && field.value !== password}
-                helperText={
-                  confirmPasswordTouched && field.value !== password
-                    ? "Passwords do not match"
-                    : ""
+        
+        {!isSuccess && token && (
+          <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%' }}>
+            <Controller
+              name="password"
+              control={control}
+              defaultValue=""
+              rules={{
+                required: "Password is required",
+                minLength: {
+                  value: 8,
+                  message: "Password must be at least 8 characters"
                 }
-              />
-            )}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            sx={{ mt: 1 }}
-            disabled={
-              isLoading ||
-              (confirmPasswordTouched && watch("confirmPassword") !== password)
-            }
-          >
-            {isLoading ? (
-              <CircularProgress size="1.5rem" color="inherit" />
-            ) : (
-              "Reset Password"
-            )}
-          </Button>
-          {alert?.type === "success" && (
-            <Link to="/login">
-              <Button
-                variant="outlined"
-                color="primary"
-                fullWidth
-                sx={{ mt: 2 }}
-              >
-                Sign In
-              </Button>
-            </Link>
-          )}
-        </form>
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="New Password"
+                  type="password"
+                  fullWidth
+                  required
+                  margin="normal"
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                  disabled={isLoading}
+                />
+              )}
+            />
+            <Controller
+              name="confirmPassword"
+              control={control}
+              defaultValue=""
+              rules={{
+                required: "Please confirm your password",
+                validate: value => value === password || "Passwords do not match"
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Confirm Password"
+                  type="password"
+                  fullWidth
+                  required
+                  margin="normal"
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message}
+                  disabled={isLoading}
+                />
+              )}
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 3 }}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <CircularProgress size="1.5rem" color="inherit" />
+              ) : (
+                "Reset Password"
+              )}
+            </Button>
+          </form>
+        )}
+        
+        {isSuccess && (
+          <Link to="/login" style={{ textDecoration: 'none', width: '100%' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              sx={{ mt: 2 }}
+            >
+              Sign In
+            </Button>
+          </Link>
+        )}
       </Box>
     </Container>
   );
