@@ -10,7 +10,7 @@ export const HeroSectionContainer = styled(Box)(({ theme }) => ({
     rgba(0, 0, 0, 0.60),
     rgba(0, 0, 0, 0.70)
   ),
-  url('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEg7B3TroFKfxQgPkA6Evqfc7Qj44IbpRqcxcsVLgHxjJUrxKpogi_cTHQ4hM5Hw3sX-HzaRUvDt5hQRx5JdlgQZisu2QvT2FG9D1ZIpXQJQpLuQP9uLEwR6pOHm052ZonAdJa5oiTsiIXQ/s640/how-to-choose-reliable-car-service-company-vehicle-fleet.jpg')
+  url('/images/background.jpg')
 `,
 
   backgroundSize: "cover",
