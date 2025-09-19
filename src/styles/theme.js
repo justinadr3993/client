@@ -61,10 +61,10 @@ const theme = createTheme({
   },
   palette: {
     primary: {
-      main: "#AF8447",
-      dark: "#694f2b",
-      light: "#f4e0c8",
-      custom: "#efe6da",
+      main: "#1976d2",      // Medium blue (MUI default blue)
+      dark: "#1565c0",      // Darker blue
+      light: "#42a5f5",     // Lighter blue
+      custom: "#e3f2fd",    // Very light blue background
     },
     secondary: {
       main: "#3b3b3b",
@@ -73,9 +73,9 @@ const theme = createTheme({
       darker: "#212121",
     },
     background: {
-      default: "#fff", // This sets the default background color
-      paper: "#fff", // Default for MUI Paper components
-      custom: "#f2f2f2", // Custom background color you can use throughout the app
+      default: "#fff",      // This sets the default background color
+      paper: "#fff",        // Default for MUI Paper components
+      custom: "#f5f9ff",    // Custom light blue background
     },
   },
   components: {
@@ -85,7 +85,7 @@ const theme = createTheme({
           borderColor: "currentColor",
           "&:hover": {
             borderColor: "currentColor",
-            backgroundColor: "#AF8447",
+            backgroundColor: "#1976d2",  // Changed to blue
             color: "#fff",
           },
         },
