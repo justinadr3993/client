@@ -33,14 +33,14 @@ export const ContentContainer = styled(Container)(() => ({
   textAlign: "center",
 }));
 
-// Styled buttons
+// Styled buttons - UPDATED TO USE THEME COLORS
 export const HeroButton = styled(Button)(({ theme }) => ({
   margin: theme.spacing(1),
   padding: theme.spacing(1, 4),
-  border: "2px solid #AF8447",
+  border: `2px solid ${theme.palette.primary.main}`,
   fontWeight: 700,
   color: "#fff",
-  backgroundColor: "#AF8447",
+  backgroundColor: theme.palette.primary.main,
 
   "&:hover": {
     backgroundColor: "transparent",
@@ -49,7 +49,7 @@ export const HeroButton = styled(Button)(({ theme }) => ({
   },
 
   "&.MuiButton-outlined": {
-    color: "#AF8447",
+    color: theme.palette.primary.main,
     borderColor: "#fff",
     backgroundColor: "#fff",
 
