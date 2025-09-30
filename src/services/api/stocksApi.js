@@ -4,10 +4,15 @@ import { baseQueryWithAuth } from "../../utils/apiUtils";
 export const stocksApi = createApi({
   reducerPath: "stocksApi",
   baseQuery: baseQueryWithAuth,
-  tagTypes: ["Stock"],
+  tagTypes: ["Stock", "StockAnalytics", "StockHistory"],
   endpoints: (builder) => ({
     fetchStocks: builder.query({
-      query: () => "/stocks",
+      query: ({ page, limit } = {}) => {
+        const params = new URLSearchParams();
+        if (page) params.append("page", page);
+        if (limit) params.append("limit", limit);
+        return `/stocks?${params.toString()}`;
+      },
       providesTags: ["Stock"],
     }),
     fetchStockById: builder.query({
@@ -20,7 +25,7 @@ export const stocksApi = createApi({
         method: "POST",
         body: newStock,
       }),
-      invalidatesTags: ["Stock"],
+      invalidatesTags: ["Stock", "StockAnalytics"],
     }),
     updateStock: builder.mutation({
       query: ({ id, ...patch }) => ({
@@ -28,14 +33,14 @@ export const stocksApi = createApi({
         method: "PATCH",
         body: patch,
       }),
-      invalidatesTags: ["Stock"],
+      invalidatesTags: ["Stock", "StockAnalytics"],
     }),
     deleteStock: builder.mutation({
       query: (id) => ({
         url: `/stocks/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Stock"],
+      invalidatesTags: ["Stock", "StockAnalytics"],
     }),
     recordStockChange: builder.mutation({
       query: ({ id, change, operation }) => ({
@@ -43,7 +48,7 @@ export const stocksApi = createApi({
         method: "POST",
         body: { change, operation },
       }),
-      invalidatesTags: ["Stock"],
+      invalidatesTags: ["Stock", "StockAnalytics", "StockHistory"],
     }),
     getStockAnalytics: builder.query({
       query: () => '/stocks/analytics',

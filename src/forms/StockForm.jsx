@@ -14,6 +14,7 @@ import {
   InputLabel,
   IconButton,
   InputAdornment,
+  Alert,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
@@ -27,7 +28,7 @@ const schema = yup.object().shape({
   type: yup.string().required("Item name is required"),
   category: yup.string().required("Category is required"),
   price: yup.number().required("Price is required").min(0),
-  quantity: yup.number().min(0).nullable(),
+  quantity: yup.number().min(0).default(0),
 });
 
 export default function StockForm({ stockToEdit }) {
@@ -38,6 +39,7 @@ export default function StockForm({ stockToEdit }) {
     reset,
     setValue,
     getValues,
+    watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -49,62 +51,64 @@ export default function StockForm({ stockToEdit }) {
   });
 
   const navigate = useNavigate();
-  const [createStock, { isLoading: isCreating }] = useCreateStockMutation();
-  const [updateStock, { isLoading: isUpdating }] = useUpdateStockMutation();
-  const [recordChange] = useRecordStockChangeMutation();
+  const [createStock, { isLoading: isCreating, error: createError }] = useCreateStockMutation();
+  const [updateStock, { isLoading: isUpdating, error: updateError }] = useUpdateStockMutation();
+  const [recordChange, { error: recordError }] = useRecordStockChangeMutation();
 
-  const handleQuantityChange = (change) => {
+  const currentQuantity = watch("quantity");
+  const error = createError || updateError || recordError;
+
+  const handleQuantityChange = async (change) => {
     const currentValue = getValues("quantity") || 0;
     const newValue = currentValue + change;
+    
     if (newValue >= 0) {
       setValue("quantity", newValue);
+      
+      // If editing existing stock, record the change immediately
+      if (stockToEdit && change !== 0) {
+        try {
+          const operation = change > 0 ? 'restock' : 'usage';
+          await recordChange({
+            id: stockToEdit.id,
+            change: Math.abs(change),
+            operation
+          }).unwrap();
+        } catch (error) {
+          console.error('Failed to record stock change:', error);
+          // Revert the quantity change if recording fails
+          setValue("quantity", currentValue);
+        }
+      }
     }
   };
 
   const onSubmit = async (data) => {
     try {
       let message = "";
+      
       if (stockToEdit) {
-        const quantityChange = data.quantity - stockToEdit.quantity;
-        
-        // First update the stock with the new values EXCEPT quantity
+        // For existing stock, update basic info (quantity is handled separately via recordChange)
         await updateStock({ 
           id: stockToEdit.id, 
           type: data.type,
           category: data.category,
           price: data.price
-          // Don't include quantity here - it will be handled by recordChange
         }).unwrap();
-
-        // If quantity changed, record it in history
-        if (quantityChange !== 0) {
-          const operation = quantityChange > 0 ? 'restock' : 'usage';
-          await recordChange({
-            id: stockToEdit.id,
-            change: Math.abs(quantityChange),
-            operation
-          }).unwrap();
-        }
         
         message = "Stock item updated successfully!";
       } else {
-        const { quantity, ...newStock } = data;
-        await createStock(newStock).unwrap();
+        // For new stock, include initial quantity
+        await createStock(data).unwrap();
         message = "Stock item created successfully!";
       }
+      
       navigate("/manage-stocks", {
         state: { alert: { severity: "success", message } },
       });
     } catch (error) {
-      console.error('Update error:', error);
-      navigate("/manage-stocks", {
-        state: {
-          alert: { 
-            severity: "error", 
-            message: `Error: ${error.data?.message || error.message || 'Unknown error'}` 
-          },
-        },
-      });
+      console.error('Form submission error:', error);
+      // Error will be displayed via the error state
     }
   };
 
@@ -116,6 +120,15 @@ export default function StockForm({ stockToEdit }) {
             {stockToEdit ? "Edit Stock Item" : "Create Stock Item"}
           </Typography>
         </Grid>
+
+        {error && (
+          <Grid item xs={12}>
+            <Alert severity="error">
+              {error.data?.message || error.message || 'An error occurred'}
+            </Alert>
+          </Grid>
+        )}
+        
         <Grid item xs={12} md={6}>
           <Controller
             name="type"
@@ -132,8 +145,9 @@ export default function StockForm({ stockToEdit }) {
             )}
           />
         </Grid>
+        
         <Grid item xs={12} md={6}>
-          <FormControl fullWidth required>
+          <FormControl fullWidth required error={!!errors.category}>
             <InputLabel>Category</InputLabel>
             <Controller
               name="category"
@@ -142,7 +156,6 @@ export default function StockForm({ stockToEdit }) {
                 <Select 
                   {...field} 
                   label="Category" 
-                  error={!!errors.category}
                 >
                   <MenuItem value="Oil">Oil</MenuItem>
                   <MenuItem value="Tire">Tire</MenuItem>
@@ -157,6 +170,7 @@ export default function StockForm({ stockToEdit }) {
             )}
           </FormControl>
         </Grid>
+        
         <Grid item xs={12} md={6}>
           <Controller
             name="price"
@@ -174,53 +188,62 @@ export default function StockForm({ stockToEdit }) {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">₱</InputAdornment>
-                  ),//
+                  ),
                 }}
+                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
               />
             )}
           />
         </Grid>
-        {stockToEdit && (
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="quantity"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Quantity"
-                  fullWidth
-                  type="number"
-                  inputProps={{ 
-                    min: 0, 
-                    step: 1,
-                    readOnly: true // Disable manual editing
-                  }}
-                  error={!!errors.quantity}
-                  helperText={errors.quantity?.message}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton 
-                          onClick={() => handleQuantityChange(-1)}
-                          size="large"
-                        >
-                          <Remove fontSize="large" />
-                        </IconButton>
-                        <IconButton 
-                          onClick={() => handleQuantityChange(1)}
-                          size="large"
-                        >
-                          <Add fontSize="large" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
-            />
-          </Grid>
-        )}
+        
+        <Grid item xs={12} md={6}>
+          <Controller
+            name="quantity"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                label="Quantity"
+                fullWidth
+                type="number"
+                value={currentQuantity}
+                inputProps={{ 
+                  min: 0, 
+                  step: 1,
+                  readOnly: !stockToEdit // Only allow quantity changes for existing items via buttons
+                }}
+                error={!!errors.quantity}
+                helperText={errors.quantity?.message}
+                InputProps={stockToEdit ? {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton 
+                        onClick={() => handleQuantityChange(-1)}
+                        size="large"
+                        disabled={currentQuantity <= 0}
+                      >
+                        <Remove fontSize="large" />
+                      </IconButton>
+                      <IconButton 
+                        onClick={() => handleQuantityChange(1)}
+                        size="large"
+                      >
+                        <Add fontSize="large" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                } : {}}
+                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+              />
+            )}
+          />
+          {stockToEdit && (
+            <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
+              Use +/- buttons to adjust quantity (changes are recorded in history)
+            </Typography>
+          )}
+        </Grid>
+        
         <Grid item xs={12}>
           <Box display="flex" gap={2}>
             <Button
@@ -228,7 +251,7 @@ export default function StockForm({ stockToEdit }) {
               variant="contained"
               disabled={isCreating || isUpdating}
             >
-              {stockToEdit ? "Update Stock" : "Create Stock"}
+              {isCreating || isUpdating ? "Saving..." : stockToEdit ? "Update Stock" : "Create Stock"}
             </Button>
             <Button
               variant="outlined"
