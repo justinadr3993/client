@@ -33,10 +33,7 @@ import {
   Legend, 
   ResponsiveContainer,
   LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell
+  Line
 } from 'recharts';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -58,14 +55,12 @@ const StockAnalytics = () => {
   
   const { 
     data: analytics, 
-    isLoading: analyticsLoading,
-    error: analyticsError
+    isLoading: analyticsLoading 
   } = useGetStockAnalyticsQuery();
   
   const { 
     data: history, 
-    isLoading: historyLoading,
-    error: historyError
+    isLoading: historyLoading 
   } = useGetStockHistoryQuery(timeRange);
 
   const handleTimeRangeChange = (event, newValue) => {
@@ -113,17 +108,6 @@ const StockAnalytics = () => {
     }
   };
 
-  // Prepare chart data
-  const filteredHistory = filterDataByDateRange(history);
-  const lowStockItems = analytics?.lowStockItemsList || [];
-  const categoryData = analytics?.byCategory || [];
-
-  // Prepare data for stock movement chart
-  const movementData = filteredHistory.map(item => ({
-    ...item,
-    totalChange: Number(item.totalChange)
-  }));
-
   if (analyticsLoading || historyLoading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -134,17 +118,9 @@ const StockAnalytics = () => {
     );
   }
 
-  if (analyticsError || historyError) {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-          <Typography color="error">
-            Error loading analytics data: {analyticsError?.data?.message || historyError?.data?.message || 'Unknown error'}
-          </Typography>
-        </Box>
-      </Container>
-    );
-  }
+  // Prepare data for charts
+  const filteredHistory = filterDataByDateRange(history);
+  const lowStockItems = analytics?.lowStockItemsList || [];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -207,7 +183,7 @@ const StockAnalytics = () => {
 
         {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -227,7 +203,7 @@ const StockAnalytics = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -244,7 +220,7 @@ const StockAnalytics = () => {
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} md={3}>
+          <Grid item xs={12} md={4}>
             <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
@@ -260,82 +236,6 @@ const StockAnalytics = () => {
                 )}
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} md={3}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Categories
-                </Typography>
-                <Typography variant="h4">
-                  {categoryData.length}
-                </Typography>
-                <Typography variant="caption" color="textSecondary">
-                  Active categories
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          {/* Category Distribution */}
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
-                Inventory by Category
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ category, value }) => `${category}: ${new Intl.NumberFormat('en-PH', {
-                      style: 'currency',
-                      currency: 'PHP'
-                    }).format(value)}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="totalValue"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [new Intl.NumberFormat('en-PH', {
-                      style: 'currency',
-                      currency: 'PHP'
-                    }).format(value), 'Value']}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </Paper>
-          </Grid>
-
-          {/* Items per Category */}
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
-                Items per Category
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={categoryData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="category" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="totalItems" fill="#8884d8" name="Number of Items" />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
           </Grid>
         </Grid>
 
@@ -353,7 +253,7 @@ const StockAnalytics = () => {
               </Typography>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart
-                  data={movementData}
+                  data={filteredHistory}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -371,26 +271,24 @@ const StockAnalytics = () => {
                     formatter={(value, name) => [`${value} items`, name === 'restock' ? 'Restocks' : 'Usage']}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
-                  <Legend />
+                  <Legend 
+                    formatter={(value) => value === 'restock' ? 'Restocks' : 'Usage'}
+                  />
                   <Line
                     type="monotone"
                     dataKey="totalChange"
                     name="restock"
+                    data={filteredHistory.filter(item => item.operation === 'restock')}
                     stroke="#00C49F"
-                    strokeWidth={2}
-                    dot={{ fill: '#00C49F', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    data={movementData.filter(item => item.operation === 'restock')}
+                    activeDot={{ r: 8 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="totalChange"
                     name="usage"
+                    data={filteredHistory.filter(item => item.operation === 'usage')}
                     stroke="#FF8042"
-                    strokeWidth={2}
-                    dot={{ fill: '#FF8042', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6 }}
-                    data={movementData.filter(item => item.operation === 'usage')}
+                    activeDot={{ r: 8 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -413,7 +311,6 @@ const StockAnalytics = () => {
                       <TableCell>Category</TableCell>
                       <TableCell>Price</TableCell>
                       <TableCell>Quantity</TableCell>
-                      <TableCell>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -428,28 +325,14 @@ const StockAnalytics = () => {
                               currency: 'PHP'
                             }).format(item.price)}
                           </TableCell>
-                          <TableCell sx={{ 
-                            color: item.quantity <= 2 ? 'error.main' : 'warning.main',
-                            fontWeight: 'bold'
-                          }}>
+                          <TableCell sx={{ color: item.quantity <= 2 ? 'error.main' : 'warning.main' }}>
                             {item.quantity}
-                          </TableCell>
-                          <TableCell>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: item.quantity <= 2 ? 'error.main' : 'warning.main',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              {item.quantity <= 2 ? 'CRITICAL' : 'LOW'}
-                            </Typography>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} align="center">
+                        <TableCell colSpan={4} align="center">
                           No low stock items
                         </TableCell>
                       </TableRow>
