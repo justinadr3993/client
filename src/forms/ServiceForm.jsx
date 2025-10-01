@@ -64,9 +64,18 @@ export default function ServiceForm({ serviceToEdit }) {
       if (serviceToEdit) {
         await updateService({ id: serviceToEdit.id, ...data }).unwrap();
         message = "Service updated successfully!";
+        navigate("/manage-services", {
+          state: { alert: { severity: "success", message } },
+        });
       } else {
         await createService(data).unwrap();
         message = "Service created successfully!";
+        navigate("/manage-services", {
+        state: { 
+          alert: { severity: "success", message },
+          newServiceAdded: true
+        },
+      });
       }
       navigate("/manage-services", {
         state: { alert: { severity: "success", message } },

@@ -38,9 +38,8 @@ const ServicesBase = () => {
     refetch 
   } = useFetchServicesQuery({
     page: paginationModel.page + 1,
-    limit: 10,
+    limit: paginationModel.pageSize,
   });
-
 
   const [deleteService] = useDeleteServiceMutation();
   const [selectedService, setSelectedService] = useState(null);
@@ -50,9 +49,21 @@ const ServicesBase = () => {
   useEffect(() => {
     if (location.state?.alert) {
       setAlert(location.state.alert);
+      
+      // If we're adding a new service and it would be on a new page, navigate to that page
+      if (location.state.newServiceAdded && servicesData.totalResults) {
+        const totalPages = Math.ceil(servicesData.totalResults / paginationModel.pageSize);
+        if (totalPages > paginationModel.page + 1) {
+          setPaginationModel(prev => ({
+            ...prev,
+            page: totalPages - 1
+          }));
+        }
+      }
+      
       navigate(location.pathname, { replace: true });
     }
-  }, [location, navigate]);
+  }, [location, navigate, servicesData.totalResults, paginationModel.pageSize]);
 
   const handleEdit = (id) => {
     navigate(`/manage-services/edit/${id}`);
@@ -77,7 +88,20 @@ const ServicesBase = () => {
       try {
         await deleteService(selectedService.id).unwrap();
         setOpenDialog(false);
-        refetch();
+        
+        // Check if we're on a page that might become empty after deletion
+        const currentItemCount = servicesData.results.length;
+        if (currentItemCount === 1 && paginationModel.page > 0) {
+          // Move to previous page if current page becomes empty
+          setPaginationModel(prev => ({
+            ...prev,
+            page: prev.page - 1
+          }));
+        } else {
+          // Otherwise, refetch current page
+          refetch();
+        }
+        
         setAlert({
           message: "Service deleted successfully!",
           severity: "success",
@@ -91,16 +115,21 @@ const ServicesBase = () => {
     }
   };
 
+  // Category cell component to fix the hook usage issue
+  const CategoryCell = ({ categoryId }) => {
+    const { data: category, isLoading: categoryLoading } = useFetchServiceCategoryByIdQuery(categoryId);
+    
+    if (categoryLoading) return "Loading...";
+    return category ? category.name : "Unknown";
+  };
+
   const columns = [
     { field: "title", headerName: "Title", width: 150 },
     {
       field: "category",
       headerName: "Category",
       width: 150,
-      renderCell: (params) => {
-        const { data: category } = useFetchServiceCategoryByIdQuery(params.row.category);
-        return category ? category.name : "Loading...";
-      },
+      renderCell: (params) => <CategoryCell categoryId={params.row.category} />,
     },
     { field: "price", headerName: "Price", width: 100, renderCell: (params) => `₱${params.row.price}` },
     {

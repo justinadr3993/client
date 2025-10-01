@@ -29,7 +29,7 @@ export default function ServiceCategoriesBase() {
   const [deleteServiceCategory] = useDeleteServiceCategoryMutation();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [alert, setAlert] = useState(location.state?.alert || null); // Use the alert from location state
+  const [alert, setAlert] = useState(location.state?.alert || null);
 
   useEffect(() => {
     if (location.state?.alert) {
@@ -67,7 +67,6 @@ export default function ServiceCategoriesBase() {
           severity: "success",
         });
       } catch (error) {
-        // Access the error message properly
         const errorMessage =
           error.data?.message || error.message || "An error occurred";
         setAlert({
