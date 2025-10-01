@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useFetchStockByIdQuery } from "../../services/api/stocksApi";
 import StockForm from "../../forms/StockForm";
-import { CircularProgress, Typography, Box } from "@mui/material";
+import { CircularProgress, Typography } from "@mui/material";
 
 const EditStock = () => {
   const { stockId } = useParams();
@@ -9,23 +9,14 @@ const EditStock = () => {
     data: stockToEdit,
     isLoading,
     isError,
-    error,
   } = useFetchStockByIdQuery(stockId);
 
   if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" mt={4}>
-        <CircularProgress />
-      </Box>
-    );
+    return <CircularProgress disableShrink />;
   }
 
   if (isError || !stockToEdit) {
-    return (
-      <Typography variant="h6" color="error">
-        {error?.data?.message || "Stock item not found"}
-      </Typography>
-    );
+    return <Typography variant="h6">Stock item not found</Typography>;
   }
 
   return <StockForm stockToEdit={stockToEdit} />;

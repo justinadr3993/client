@@ -10,36 +10,27 @@ import {
   DialogTitle,
   Alert,
   CircularProgress,
-  Chip,
-  IconButton,
-  Tooltip,
+  useMediaQuery,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
 import { 
   useFetchStocksQuery, 
+  useUpdateStockMutation, 
   useDeleteStockMutation,
 } from "../../services/api/stocksApi";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { ButtonsContainer } from "./StocksBase.styles";
 import FadeAlert from "../../components/FadeAlert/FadeAlert";
-import AnalyticsIcon from '@mui/icons-material/Analytics';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import WarningIcon from '@mui/icons-material/Warning';
 
 const StocksBase = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down("md"));
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 15,
-  });
-
-  const [filters, setFilters] = useState({
-    category: '',
-    lowStock: false
   });
 
   const { 
@@ -51,9 +42,9 @@ const StocksBase = () => {
   } = useFetchStocksQuery({
     page: paginationModel.page + 1,
     limit: paginationModel.pageSize,
-    ...filters
   });
   
+  const [updateStock] = useUpdateStockMutation();
   const [deleteStock] = useDeleteStockMutation();
   const [selectedStock, setSelectedStock] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -96,7 +87,7 @@ const StocksBase = () => {
   const handleDelete = async () => {
     if (selectedStock) {
       try {
-        await deleteStock(selectedStock._id).unwrap();
+        await deleteStock(selectedStock.id).unwrap();
         setOpenDialog(false);
         setAlert({
           severity: "success",
@@ -112,84 +103,56 @@ const StocksBase = () => {
     }
   };
 
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    setPaginationModel({ ...paginationModel, page: 0 });
-  };
-
   const columns = [
     { 
       field: "type",
       headerName: "Item Name", 
-      width: 200,
-      flex: 1 
+      width: 200 
     },
     { 
       field: "category", 
       headerName: "Category", 
-      width: 120 
+      width: 150 
     },
     { 
       field: "price", 
       headerName: "Price", 
-      width: 120,
+      width: 150,
       renderCell: (params) => (
-        <Typography variant="body2">
-          ₱{(params.row.price || 0).toFixed(2)}
-        </Typography>
+        <Typography>₱{(params.row.price || 0).toFixed(2)}</Typography>
       )
     },
     { 
       field: "quantity", 
       headerName: "Quantity",
-      width: 120,
+      width: 150,
       renderCell: (params) => (
-        <Box display="flex" alignItems="center" gap={1}>
-          <Typography variant="body2">{params.row.quantity || 0}</Typography>
-          {params.row.quantity <= (params.row.minStockLevel || 5) && (
-            <Tooltip title="Low Stock">
-              <WarningIcon color="error" fontSize="small" />
-            </Tooltip>
-          )}
-        </Box>
-      )
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      renderCell: (params) => (
-        <Chip 
-          label={params.row.quantity <= (params.row.minStockLevel || 5) ? "Low Stock" : "In Stock"}
-          color={params.row.quantity <= (params.row.minStockLevel || 5) ? "error" : "success"}
-          size="small"
-        />
+        <Typography>{params.row.quantity || 0}</Typography>
       )
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 150,
+      width: 200,
       renderCell: (params) => (
         <Box>
-          <Tooltip title="Edit">
-            <IconButton
-              size="small"
-              onClick={() => handleEdit(params.row._id)}
-              color="primary"
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete">
-            <IconButton
-              size="small"
-              onClick={() => handleOpenDialog(params.row)}
-              color="error"
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            onClick={() => handleEdit(params.row.id)}
+            sx={{ mr: 1 }}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            size="small"
+            onClick={() => handleOpenDialog(params.row)}
+          >
+            Delete
+          </Button>
         </Box>
       ),
     },
@@ -216,54 +179,18 @@ const StocksBase = () => {
         />
       )}
 
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h4">
-          Manage Stock
-        </Typography>
-        <Button
-          variant="outlined"
-          startIcon={<AnalyticsIcon />}
-          onClick={() => navigate("/stock-analytics")}
-        >
-          View Analytics
-        </Button>
-      </Box>
+      <Typography variant="h4" gutterBottom>
+        Manage Stock
+      </Typography>
       
       <ButtonsContainer>
-        <Box display="flex" gap={2} alignItems="center" flexWrap="wrap">
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/manage-stocks/create")}
-          >
-            Add New Stock Item
-          </Button>
-          
-          <Button
-            variant={filters.lowStock ? "contained" : "outlined"}
-            color="warning"
-            onClick={() => handleFilterChange({ ...filters, lowStock: !filters.lowStock })}
-          >
-            Low Stock Only
-          </Button>
-
-          <Button
-            variant={filters.category === '' ? "contained" : "outlined"}
-            onClick={() => handleFilterChange({ ...filters, category: '' })}
-          >
-            All Categories
-          </Button>
-
-          {['Oil', 'Tire', 'Brake', 'Filter', 'Battery'].map(category => (
-            <Button
-              key={category}
-              variant={filters.category === category ? "contained" : "outlined"}
-              onClick={() => handleFilterChange({ ...filters, category })}
-            >
-              {category}
-            </Button>
-          ))}
-        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => navigate("/manage-stocks/create")}
+        >
+          Add New Stock Item
+        </Button>
       </ButtonsContainer>
 
       <Box sx={{ height: 650, width: "100%", mt: 2 }}>
@@ -285,13 +212,6 @@ const StocksBase = () => {
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             disableSelectionOnClick
-            getRowId={(row) => row._id}
-            sx={{
-              '& .MuiDataGrid-cell': {
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-              },
-            }}
           />
         )}
       </Box>
@@ -300,12 +220,13 @@ const StocksBase = () => {
         <DialogTitle>Delete Stock Item</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete "{selectedStock?.type}"? This action cannot be undone.
+            Are you sure you want to delete the stock item{" "}
+            <strong>{selectedStock?.type}</strong>?
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleDelete} color="error" autoFocus>
+          <Button onClick={handleDelete} color="secondary" autoFocus>
             Delete
           </Button>
         </DialogActions>

@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Grid, 
+  Card, 
   CardContent,
-  LinearProgress,
-  Alert,
+  Container,
   CircularProgress,
-  Chip,
+  Tabs,
+  Tab,
   Paper,
   Table,
   TableBody,
@@ -16,363 +16,335 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
+  TextField
 } from '@mui/material';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js';
-import { Bar, Line, Doughnut } from 'react-chartjs-2';
-import { useFetchStockAnalyticsQuery, useFetchStockHistoryQuery } from '../../services/api/stocksApi';
-import DashboardLayout from '../../layouts/DashboardLayout';
+import { 
+  useGetStockAnalyticsQuery,
+  useGetStockHistoryQuery,
+} from '../../services/api/stocksApi';
+import AnalyticsIcon from '@mui/icons-material/Analytics';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  LineChart,
+  Line
+} from 'recharts';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs from 'dayjs';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const StockAnalytics = () => {
-  const [timeframe, setTimeframe] = useState('month');
+  const [timeRange, setTimeRange] = useState('month');
+  const [customDate, setCustomDate] = useState(dayjs());
+  const [customStartDate, setCustomStartDate] = useState(dayjs().startOf('week'));
+  const [customEndDate, setCustomEndDate] = useState(dayjs().endOf('week'));
   
   const { 
     data: analytics, 
-    isLoading: analyticsLoading, 
-    isError: analyticsError 
-  } = useFetchStockAnalyticsQuery();
+    isLoading: analyticsLoading 
+  } = useGetStockAnalyticsQuery();
   
   const { 
     data: history, 
-    isLoading: historyLoading, 
-    isError: historyError 
-  } = useFetchStockHistoryQuery(timeframe);
+    isLoading: historyLoading 
+  } = useGetStockHistoryQuery(timeRange);
+
+  const handleTimeRangeChange = (event, newValue) => {
+    setTimeRange(newValue);
+  };
+
+  const filterDataByDateRange = (data) => {
+    if (!data) return [];
+    
+    let startDate, endDate;
+    
+    switch (timeRange) {
+      case 'week':
+        startDate = customStartDate.startOf('day');
+        endDate = customEndDate.endOf('day');
+        break;
+      case 'month':
+        startDate = customDate.startOf('month');
+        endDate = customDate.endOf('month');
+        break;
+      case 'year':
+        startDate = customDate.startOf('year');
+        endDate = customDate.endOf('year');
+        break;
+      default:
+        return data;
+    }
+    
+    return data.filter(item => {
+      const itemDate = dayjs(item.date);
+      return itemDate.isSameOrAfter(startDate) && itemDate.isSameOrBefore(endDate);
+    });
+  };
+
+  const formatDateRange = () => {
+    switch (timeRange) {
+      case 'week':
+        return `${customStartDate.format('MMM D')} - ${customEndDate.format('MMM D, YYYY')}`;
+      case 'month':
+        return customDate.format('MMMM YYYY');
+      case 'year':
+        return customDate.format('YYYY');
+      default:
+        return '';
+    }
+  };
 
   if (analyticsLoading || historyLoading) {
     return (
-      <DashboardLayout>
-        <Box display="flex" justifyContent="center" mt={4}>
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
           <CircularProgress />
         </Box>
-      </DashboardLayout>
+      </Container>
     );
   }
 
-  if (analyticsError || historyError) {
-    return (
-      <DashboardLayout>
-        <Alert severity="error">
-          Failed to load analytics data
-        </Alert>
-      </DashboardLayout>
-    );
-  }
-
-  const { overall, byCategory, lowStockItemsList, trends } = analytics;
-
-  // Category distribution chart
-  const categoryChartData = {
-    labels: byCategory?.map(cat => cat.category) || [],
-    datasets: [
-      {
-        label: 'Total Value (₱)',
-        data: byCategory?.map(cat => cat.totalValue) || [],
-        backgroundColor: 'rgba(54, 162, 235, 0.8)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  // Stock usage trends
-  const usageTrends = trends?.filter(trend => trend.operation === 'usage') || [];
-  const restockTrends = trends?.filter(trend => trend.operation === 'restock') || [];
-
-  const trendsChartData = {
-    labels: usageTrends.map(trend => trend.category),
-    datasets: [
-      {
-        label: 'Usage',
-        data: usageTrends.map(trend => trend.totalChange),
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-        borderWidth: 1,
-      },
-      {
-        label: 'Restock',
-        data: restockTrends.map(trend => trend.totalChange),
-        backgroundColor: 'rgba(75, 192, 192, 0.8)',
-        borderColor: 'rgba(75, 192, 192, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  // History chart data
-  const historyByDate = {};
-  history?.forEach(item => {
-    if (!historyByDate[item.date]) {
-      historyByDate[item.date] = { usage: 0, restock: 0 };
-    }
-    historyByDate[item.date][item.operation] += item.totalChange;
-  });
-
-  const historyDates = Object.keys(historyByDate).sort();
-  const historyChartData = {
-    labels: historyDates,
-    datasets: [
-      {
-        label: 'Usage',
-        data: historyDates.map(date => historyByDate[date].usage),
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-      },
-      {
-        label: 'Restock',
-        data: historyDates.map(date => historyByDate[date].restock),
-        borderColor: 'rgb(53, 162, 235)',
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-      },
-    ],
-  };
+  // Prepare data for charts
+  const filteredHistory = filterDataByDateRange(history);
+  const lowStockItems = analytics?.lowStockItemsList || [];
 
   return (
-    <DashboardLayout>
-      <Box sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Typography variant="h4" gutterBottom>
-            Stock Analytics
-          </Typography>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box>
+        <Typography
+          component="h1"
+          variant="h3"
+          color="inherit"
+          noWrap
+          sx={{ flexGrow: 1, mb: 4 }}
+        >
+          <AnalyticsIcon sx={{ verticalAlign: 'middle', mr: 1 }} />
+          Stock Analytics
+        </Typography>
+
+        {/* Time range selector */}
+        <Box sx={{ mb: 3 }}>
+          <Tabs 
+            value={timeRange} 
+            onChange={handleTimeRangeChange} 
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab label="Week" value="week" />
+            <Tab label="Month" value="month" />
+            <Tab label="Year" value="year" />
+          </Tabs>
           
-          <FormControl sx={{ minWidth: 120 }} size="small">
-            <InputLabel>Timeframe</InputLabel>
-            <Select
-              value={timeframe}
-              label="Timeframe"
-              onChange={(e) => setTimeframe(e.target.value)}
-            >
-              <MenuItem value="week">Last Week</MenuItem>
-              <MenuItem value="month">Last Month</MenuItem>
-              <MenuItem value="year">Last Year</MenuItem>
-            </Select>
-          </FormControl>
+          <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            {timeRange === 'week' && (
+              <>
+                <DatePicker
+                  label="Start Date"
+                  value={customStartDate}
+                  onChange={(newValue) => setCustomStartDate(newValue)}
+                  renderInput={(params) => <TextField {...params} />}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={customEndDate}
+                  onChange={(newValue) => setCustomEndDate(newValue)}
+                  minDate={customStartDate}
+                  renderInput={(params) => <TextField {...params} />}
+                />
+              </>
+            )}
+            
+            {(timeRange === 'month' || timeRange === 'year') && (
+              <DatePicker
+                label={`Select ${timeRange === 'month' ? 'Month' : 'Year'}`}
+                value={customDate}
+                onChange={(newValue) => setCustomDate(newValue)}
+                views={timeRange === 'month' ? ['year', 'month'] : ['year']}
+                openTo={timeRange === 'month' ? 'month' : 'year'}
+                renderInput={(params) => <TextField {...params} />}
+              />
+            )}
+          </Box>
         </Box>
 
-        {/* Overall Statistics */}
+        {/* Summary Cards */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
+          <Grid item xs={12} md={4}>
+            <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
-                  Total Stock Value
+                  Total Inventory Value
                 </Typography>
-                <Typography variant="h4" component="div">
-                  ₱{(overall?.totalValue || 0).toFixed(2)}
+                <Typography variant="h4">
+                  {new Intl.NumberFormat('en-PH', {
+                    style: 'currency',
+                    currency: 'PHP'
+                  }).format(analytics?.overall?.totalValue || 0)}
                 </Typography>
+                {timeRange !== 'all' && (
+                  <Typography variant="caption" color="textSecondary">
+                    {formatDateRange()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
+          <Grid item xs={12} md={4}>
+            <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
                   Total Items
                 </Typography>
-                <Typography variant="h4" component="div">
-                  {overall?.totalItems || 0}
+                <Typography variant="h4">
+                  {analytics?.overall?.totalItems || 0}
                 </Typography>
+                {timeRange !== 'all' && (
+                  <Typography variant="caption" color="textSecondary">
+                    {formatDateRange()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
+          <Grid item xs={12} md={4}>
+            <Card elevation={3}>
               <CardContent>
                 <Typography color="textSecondary" gutterBottom>
-                  Low Stock Items
+                  Low Stock Items (≤5)
                 </Typography>
-                <Typography variant="h4" component="div" color="error">
-                  {overall?.lowStockItems || 0}
+                <Typography variant="h4" color="error">
+                  {analytics?.overall?.lowStockItems || 0}
                 </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Card>
-              <CardContent>
-                <Typography color="textSecondary" gutterBottom>
-                  Average Item Value
-                </Typography>
-                <Typography variant="h4" component="div">
-                  ₱{(overall?.averageStockValue || 0).toFixed(2)}
-                </Typography>
+                {timeRange !== 'all' && (
+                  <Typography variant="caption" color="textSecondary">
+                    {formatDateRange()}
+                  </Typography>
+                )}
               </CardContent>
             </Card>
           </Grid>
         </Grid>
 
-        {/* Charts */}
+        {/* Stock Movement Trends */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Stock Value by Category
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <Bar 
-                    data={categoryChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'top',
-                        },
-                      },
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Stock Movement Trends ({timeRange})
+                {timeRange !== 'all' && (
+                  <Typography variant="subtitle2" color="textSecondary">
+                    {formatDateRange()}
+                  </Typography>
+                )}
+              </Typography>
+              <ResponsiveContainer width="100%" height={400}>
+                <LineChart
+                  data={filteredHistory}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date"
+                    tickFormatter={(date) => {
+                      if (timeRange === 'year') {
+                        return date.split('-')[1]; // Show just month for year view
+                      }
+                      return date.split('-').slice(1).join('-'); // Show day/month for week/month views
                     }}
                   />
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Stock Movement Trends
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <Line 
-                    data={historyChartData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'top',
-                        },
-                      },
-                    }}
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} items`, name === 'restock' ? 'Restocks' : 'Usage']}
+                    labelFormatter={(label) => `Date: ${label}`}
                   />
-                </Box>
-              </CardContent>
-            </Card>
+                  <Legend 
+                    formatter={(value) => value === 'restock' ? 'Restocks' : 'Usage'}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalChange"
+                    name="restock"
+                    data={filteredHistory.filter(item => item.operation === 'restock')}
+                    stroke="#00C49F"
+                    activeDot={{ r: 8 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalChange"
+                    name="usage"
+                    data={filteredHistory.filter(item => item.operation === 'usage')}
+                    stroke="#FF8042"
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Paper>
           </Grid>
         </Grid>
 
         {/* Low Stock Items */}
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Low Stock Items
-                </Typography>
-                <TableContainer component={Paper}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Item</TableCell>
-                        <TableCell>Category</TableCell>
-                        <TableCell align="right">Current</TableCell>
-                        <TableCell align="right">Minimum</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {lowStockItemsList?.map((item) => (
-                        <TableRow key={item._id}>
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Low Stock Items (Quantity ≤ 5)
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Item Name</TableCell>
+                      <TableCell>Category</TableCell>
+                      <TableCell>Price</TableCell>
+                      <TableCell>Quantity</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {lowStockItems.length > 0 ? (
+                      lowStockItems.map((item) => (
+                        <TableRow key={item._id} hover>
                           <TableCell>{item.type}</TableCell>
+                          <TableCell>{item.category}</TableCell>
                           <TableCell>
-                            <Chip label={item.category} size="small" />
+                            {new Intl.NumberFormat('en-PH', {
+                              style: 'currency',
+                              currency: 'PHP'
+                            }).format(item.price)}
                           </TableCell>
-                          <TableCell align="right">
-                            <Typography color="error">
-                              {item.quantity}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="right">{item.minStockLevel}</TableCell>
-                        </TableRow>
-                      ))}
-                      {(!lowStockItemsList || lowStockItemsList.length === 0) && (
-                        <TableRow>
-                          <TableCell colSpan={4} align="center">
-                            <Typography color="textSecondary">
-                              No low stock items
-                            </Typography>
+                          <TableCell sx={{ color: item.quantity <= 2 ? 'error.main' : 'warning.main' }}>
+                            {item.quantity}
                           </TableCell>
                         </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Category Performance
-                </Typography>
-                <TableContainer component={Paper}>
-                  <Table size="small">
-                    <TableHead>
+                      ))
+                    ) : (
                       <TableRow>
-                        <TableCell>Category</TableCell>
-                        <TableCell align="right">Items</TableCell>
-                        <TableCell align="right">Total Value</TableCell>
-                        <TableCell align="right">Low Stock</TableCell>
+                        <TableCell colSpan={4} align="center">
+                          No low stock items
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {byCategory?.map((category) => (
-                        <TableRow key={category.category}>
-                          <TableCell>
-                            <Chip label={category.category} size="small" />
-                          </TableCell>
-                          <TableCell align="right">{category.totalItems}</TableCell>
-                          <TableCell align="right">
-                            ₱{category.totalValue.toFixed(2)}
-                          </TableCell>
-                          <TableCell align="right">
-                            {category.lowStockItems > 0 ? (
-                              <Chip 
-                                label={category.lowStockItems} 
-                                color="error" 
-                                size="small" 
-                              />
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </CardContent>
-            </Card>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
-    </DashboardLayout>
+    </LocalizationProvider>
   );
 };
 
