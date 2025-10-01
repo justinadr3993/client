@@ -34,8 +34,8 @@ import {
   ArcElement,
 } from 'chart.js';
 import { Bar, Line, Doughnut } from 'react-chartjs-2';
-import { useFetchStockAnalyticsQuery, useFetchStockHistoryQuery } from '../services/api/stocksApi';
-import DashboardLayout from '../layouts/DashboardLayout';
+import { useFetchStockAnalyticsQuery, useFetchStockHistoryQuery } from '../../services/api/stocksApi';
+import DashboardLayout from '../../layouts/DashboardLayout';
 
 ChartJS.register(
   CategoryScale,
