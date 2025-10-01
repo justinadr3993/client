@@ -9,7 +9,6 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  CircularProgress,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -28,10 +27,9 @@ const UserManagement = () => {
   });
 
   const { 
-    data: usersData = { results: [], totalResults: 0 }, 
+    data: usersData, 
     isLoading, 
     isError, 
-    error,
     refetch 
   } = useFetchUsersQuery({
     page: paginationModel.page + 1,
@@ -76,7 +74,7 @@ const UserManagement = () => {
         });
       } catch (error) {
         setAlert({
-          message: `Error deleting user: ${error.data?.message || error.message}`,
+          message: `Error deleting user: ${error.message}`,
           severity: "error",
         });
       }
@@ -127,23 +125,11 @@ const UserManagement = () => {
   ];
 
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      </DashboardLayout>
-    );
+    return <Typography>Loading users...</Typography>;
   }
 
   if (isError) {
-    return (
-      <DashboardLayout>
-        <Typography color="error">
-          Error loading users: {error?.data?.message || "Unknown error"}
-        </Typography>
-      </DashboardLayout>
-    );
+    return <Typography>Error loading users</Typography>;
   }
 
   return (
@@ -176,9 +162,9 @@ const UserManagement = () => {
           </Button>
         </Box>
         <DataGrid
-          rows={usersData.results}
+          rows={usersData?.results || []}
           columns={columns}
-          rowCount={usersData.totalResults || 0}
+          rowCount={usersData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
           pageSizeOptions={[15, 50, 100]}

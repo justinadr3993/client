@@ -9,7 +9,6 @@ import {
   DialogContentText,
   DialogTitle,
   useMediaQuery,
-  CircularProgress,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -31,10 +30,9 @@ const StaffsBase = () => {
   });
 
   const { 
-    data: staffsData = { results: [], totalResults: 0 }, 
+    data: staffsData, 
     isLoading, 
     isError, 
-    error,
     refetch 
   } = useFetchStaffsQuery({
     page: paginationModel.page + 1,
@@ -83,7 +81,7 @@ const StaffsBase = () => {
         });
       } catch (error) {
         setAlert({
-          message: `Error unassigning staff: ${error.data?.message || error.message}`,
+          message: `Error unassigning staff: ${error.message}`,
           severity: "error",
         });
       }
@@ -132,23 +130,11 @@ const StaffsBase = () => {
   ];
 
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      </DashboardLayout>
-    );
+    return <Typography>Loading...</Typography>;
   }
 
   if (isError) {
-    return (
-      <DashboardLayout>
-        <Typography color="error">
-          Error loading staffs: {error?.data?.message || "Unknown error"}
-        </Typography>
-      </DashboardLayout>
-    );
+    return <Typography>Error loading staffs</Typography>;
   }
 
   return (
@@ -181,9 +167,9 @@ const StaffsBase = () => {
           </Button>
         </Box>
         <DataGrid
-          rows={staffsData.results}
+          rows={staffsData?.results || []}
           columns={columns}
-          rowCount={staffsData.totalResults || 0}
+          rowCount={staffsData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
           pageSizeOptions={[15, 50, 100]}

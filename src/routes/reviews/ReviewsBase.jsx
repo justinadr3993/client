@@ -10,7 +10,6 @@ import {
   DialogTitle,
   useMediaQuery,
   Rating,
-  CircularProgress,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -43,10 +42,9 @@ const ReviewsBase = () => {
   const [alert, setAlert] = useState(null);
 
   const {
-    data: reviewsData = { results: [], totalResults: 0 },
+    data: reviewsData,
     isLoading,
     isError,
-    error,
     refetch,
   } = useFetchReviewsQuery({
     page: paginationModel.page + 1,
@@ -59,13 +57,6 @@ const ReviewsBase = () => {
       navigate(location.pathname, { replace: true });
     }
   }, [location, navigate]);
-
-  const ServiceCell = ({ serviceId }) => {
-    const { data: service, isLoading: serviceLoading } = useFetchServiceByIdQuery(serviceId);
-    
-    if (serviceLoading) return "Loading...";
-    return service ? service.title : "Unknown Service";
-  };
 
   const handleViewDetails = (review) => {
     setSelectedReview(review);
@@ -98,7 +89,7 @@ const ReviewsBase = () => {
         });
       } catch (error) {
         setAlert({
-          message: `Error deleting review: ${error.data?.message || error.message}`,
+          message: `Error deleting review: ${error.message}`,
           severity: "error",
         });
       }
@@ -110,12 +101,16 @@ const ReviewsBase = () => {
       field: "name",
       headerName: "Reviewer",
       width: 200,
+      renderCell: (params) => params.row.name,
     },
     {
       field: "serviceType",
       headerName: "Service",
       width: 200,
-      renderCell: (params) => <ServiceCell serviceId={params.row.serviceType} />,
+      renderCell: (params) => {
+        const { data: service } = useFetchServiceByIdQuery(params.row.serviceType);
+        return service ? service.title : "Loading...";
+      },
     },
     {
       field: "rating",
@@ -165,30 +160,18 @@ const ReviewsBase = () => {
     },
   ];
 
-  const filteredReviews =
-    user?.role === "admin"
-      ? reviewsData.results
-      : reviewsData.results.filter((review) => review.userId === user?.id);
-
   if (isLoading) {
-    return (
-      <DashboardLayout>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
-        </Box>
-      </DashboardLayout>
-    );
+    return <Typography>Loading...</Typography>;
   }
 
   if (isError) {
-    return (
-      <DashboardLayout>
-        <Typography color="error">
-          Error loading reviews: {error?.data?.message || "Unknown error"}
-        </Typography>
-      </DashboardLayout>
-    );
+    return <Typography>Error loading reviews</Typography>;
   }
+
+  const filteredReviews =
+    user?.role === "admin"
+      ? reviewsData?.results || []
+      : (reviewsData?.results || []).filter((review) => review.userId === user.id);
 
   return (
     <DashboardLayout>
@@ -224,7 +207,7 @@ const ReviewsBase = () => {
         <DataGrid
           rows={filteredReviews}
           columns={columns}
-          rowCount={reviewsData.totalResults || 0}
+          rowCount={reviewsData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
           pageSizeOptions={[15, 50, 100]}
