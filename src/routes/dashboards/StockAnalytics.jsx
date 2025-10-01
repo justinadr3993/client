@@ -108,26 +108,6 @@ const StockAnalytics = () => {
     }
   };
 
-  // Prepare chart data for stock movement trends
-  const prepareChartData = (historyData) => {
-    if (!historyData) return [];
-    
-    const groupedData = {};
-    
-    historyData.forEach(item => {
-      if (!groupedData[item.date]) {
-        groupedData[item.date] = {
-          date: item.date,
-          restock: 0,
-          usage: 0
-        };
-      }
-      groupedData[item.date][item.operation] = item.totalChange;
-    });
-    
-    return Object.values(groupedData);
-  };
-
   if (analyticsLoading || historyLoading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -140,7 +120,6 @@ const StockAnalytics = () => {
 
   // Prepare data for charts
   const filteredHistory = filterDataByDateRange(history);
-  const chartData = prepareChartData(filteredHistory);
   const lowStockItems = analytics?.lowStockItemsList || [];
 
   return (
@@ -274,7 +253,7 @@ const StockAnalytics = () => {
               </Typography>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart
-                  data={chartData}
+                  data={filteredHistory}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -292,19 +271,23 @@ const StockAnalytics = () => {
                     formatter={(value, name) => [`${value} items`, name === 'restock' ? 'Restocks' : 'Usage']}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
-                  <Legend />
+                  <Legend 
+                    formatter={(value) => value === 'restock' ? 'Restocks' : 'Usage'}
+                  />
                   <Line
                     type="monotone"
-                    dataKey="restock"
+                    dataKey="totalChange"
+                    name="restock"
+                    data={filteredHistory.filter(item => item.operation === 'restock')}
                     stroke="#00C49F"
-                    strokeWidth={2}
                     activeDot={{ r: 8 }}
                   />
                   <Line
                     type="monotone"
-                    dataKey="usage"
+                    dataKey="totalChange"
+                    name="usage"
+                    data={filteredHistory.filter(item => item.operation === 'usage')}
                     stroke="#FF8042"
-                    strokeWidth={2}
                     activeDot={{ r: 8 }}
                   />
                 </LineChart>

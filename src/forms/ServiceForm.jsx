@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -12,230 +12,182 @@ import {
   Select,
   FormControl,
   InputLabel,
-  IconButton,
   InputAdornment,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
-  useCreateStockMutation,
-  useUpdateStockMutation,
-} from "../services/api/stocksApi";
-import { Add, Remove } from "@mui/icons-material";
+  useCreateServiceMutation,
+  useUpdateServiceMutation,
+} from "../services/api/servicesApi";
+import { useFetchServiceCategoriesQuery } from "../services/api/serviceCategoriesApi";
 
 const schema = yup.object().shape({
-  type: yup.string().required("Item name is required"),
   category: yup.string().required("Category is required"),
+  title: yup.string().required("Title is required"),
+  description: yup.string().required("Description is required"),
   price: yup.number().required("Price is required").min(0),
-  quantity: yup.number().min(0).nullable(),
 });
 
-export default function StockForm({ stockToEdit }) {
+export default function ServiceForm({ serviceToEdit }) {
   const {
     control,
     handleSubmit,
     formState: { errors },
-    reset,
     setValue,
-    getValues,
     watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      type: stockToEdit?.type || "",
-      category: stockToEdit?.category || "",
-      price: stockToEdit?.price || "",
-      quantity: stockToEdit?.quantity || 0,
+      category: serviceToEdit?.category?.id || "", 
+      title: serviceToEdit?.title || "",
+      description: serviceToEdit?.description || "",
+      price: serviceToEdit?.price || "",
     },
   });
 
   const navigate = useNavigate();
-  const [createStock, { isLoading: isCreating }] = useCreateStockMutation();
-  const [updateStock, { isLoading: isUpdating }] = useUpdateStockMutation();
+  const [createService, { isLoading: isCreating }] = useCreateServiceMutation();
+  const [updateService, { isLoading: isUpdating }] = useUpdateServiceMutation();
+  const { data: categories, isLoading: categoriesLoading } =
+    useFetchServiceCategoriesQuery();
+  const [showFields, setShowFields] = useState(!!serviceToEdit);
 
-  // Watch quantity for real-time updates
-  const currentQuantity = watch("quantity") || 0;
-
-  const handleQuantityChange = (change) => {
-    const currentValue = getValues("quantity") || 0;
-    const newValue = currentValue + change;
-    if (newValue >= 0) {
-      setValue("quantity", newValue, { shouldValidate: true });
+  useEffect(() => {
+    if (!categoriesLoading && categories && serviceToEdit) {
+      setValue("category", serviceToEdit.category.id);
     }
-  };
+  }, [categories, categoriesLoading, serviceToEdit, setValue]);
 
   const onSubmit = async (data) => {
     try {
       let message = "";
-      if (stockToEdit) {
-        // For editing, update all fields including quantity
-        // The server will automatically handle history tracking
-        await updateStock({ 
-          id: stockToEdit.id, 
-          type: data.type,
-          category: data.category,
-          price: data.price,
-          quantity: data.quantity // Include quantity - server handles history
-        }).unwrap();
-        
-        message = "Stock item updated successfully!";
+      if (serviceToEdit) {
+        await updateService({ id: serviceToEdit.id, ...data }).unwrap();
+        message = "Service updated successfully!";
       } else {
-        // For new items, create without quantity (defaults to 0)
-        const { quantity, ...newStock } = data;
-        await createStock(newStock).unwrap();
-        message = "Stock item created successfully!";
+        await createService(data).unwrap();
+        message = "Service created successfully!";
       }
-      navigate("/manage-stocks", {
+      navigate("/manage-services", {
         state: { alert: { severity: "success", message } },
       });
     } catch (error) {
-      console.error('Update error:', error);
-      navigate("/manage-stocks", {
+      navigate("/manage-services", {
         state: {
-          alert: { 
-            severity: "error", 
-            message: `Error: ${error.data?.message || error.message || 'Unknown error'}` 
-          },
+          alert: { severity: "error", message: `Error: ${error.message}` },
         },
       });
     }
   };
+
+  const selectedCategory = watch("category");
+
+  useEffect(() => {
+    setShowFields(!!selectedCategory);
+  }, [selectedCategory]);
 
   return (
     <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ mt: 3 }}>
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12}>
           <Typography variant="h6">
-            {stockToEdit ? "Edit Stock Item" : "Create Stock Item"}
+            {serviceToEdit ? "Edit Service" : "Create Service"}
           </Typography>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="type"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Item Name"
-                fullWidth
-                error={!!errors.type}
-                helperText={errors.type?.message}
-                required
-              />
-            )}
-          />
-        </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <FormControl fullWidth required>
             <InputLabel>Category</InputLabel>
             <Controller
               name="category"
               control={control}
               render={({ field }) => (
-                <Select 
-                  {...field} 
-                  label="Category" 
-                  error={!!errors.category}
-                >
-                  <MenuItem value="Oil">Oil</MenuItem>
-                  <MenuItem value="Tire">Tire</MenuItem>
-                  <MenuItem value="Brake">Brake</MenuItem>
+                <Select {...field} label="Category" value={field.value || ""}>
+                  {categories?.results.map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               )}
             />
-            {errors.category && (
-              <Typography color="error" variant="caption">
-                {errors.category.message}
-              </Typography>
-            )}
           </FormControl>
         </Grid>
-        <Grid item xs={12} md={6}>
-          <Controller
-            name="price"
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Price"
-                fullWidth
-                type="number"
-                inputProps={{ min: 0, step: "0.01" }}
-                error={!!errors.price}
-                helperText={errors.price?.message}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">₱</InputAdornment>
-                  ),
-                }}
+        {showFields && (
+          <>
+            <Grid item xs={12}>
+              <Controller
+                name="title"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Title"
+                    fullWidth
+                    error={!!errors.title}
+                    helperText={errors.title?.message}
+                    required
+                  />
+                )}
               />
-            )}
-          />
-        </Grid>
-        {stockToEdit && (
-          <Grid item xs={12} md={6}>
-            <Controller
-              name="quantity"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Quantity"
-                  fullWidth
-                  type="number"
-                  value={currentQuantity}
-                  inputProps={{ 
-                    min: 0, 
-                    step: 1,
-                    readOnly: true // Disable manual editing
-                  }}
-                  error={!!errors.quantity}
-                  helperText={errors.quantity?.message}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton 
-                          onClick={() => handleQuantityChange(-1)}
-                          size="large"
-                          disabled={isUpdating}
-                        >
-                          <Remove fontSize="large" />
-                        </IconButton>
-                        <IconButton 
-                          onClick={() => handleQuantityChange(1)}
-                          size="large"
-                          disabled={isUpdating}
-                        >
-                          <Add fontSize="large" />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              )}
-            />
-            <Typography variant="caption" color="textSecondary" sx={{ mt: 1 }}>
-              Use buttons to adjust quantity. Changes will be recorded in history.
-            </Typography>
-          </Grid>
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Description"
+                    fullWidth
+                    error={!!errors.description}
+                    helperText={errors.description?.message}
+                    required
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Controller
+                name="price"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label="Price"
+                    fullWidth
+                    type="number"
+                    inputProps={{ min: 0, step: "0.01" }}
+                    error={!!errors.price}
+                    helperText={errors.price?.message}
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">₱</InputAdornment>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Box display="flex" gap={2}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={isCreating || isUpdating}
+                >
+                  {serviceToEdit ? "Update Service" : "Create Service"}
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => navigate("/manage-services")}
+                >
+                  Cancel
+                </Button>
+              </Box>
+            </Grid>
+          </>
         )}
-        <Grid item xs={12}>
-          <Box display="flex" gap={2}>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isCreating || isUpdating}
-            >
-              {stockToEdit ? (isUpdating ? "Updating..." : "Update Stock") : (isCreating ? "Creating..." : "Create Stock")}
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={() => navigate("/manage-stocks")}
-            >
-              Cancel
-            </Button>
-          </Box>
-        </Grid>
       </Grid>
     </Box>
   );

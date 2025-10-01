@@ -38,6 +38,7 @@ export default function StockForm({ stockToEdit }) {
     reset,
     setValue,
     getValues,
+    watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -52,6 +53,8 @@ export default function StockForm({ stockToEdit }) {
   const [createStock, { isLoading: isCreating }] = useCreateStockMutation();
   const [updateStock, { isLoading: isUpdating }] = useUpdateStockMutation();
   const [recordChange] = useRecordStockChangeMutation();
+
+  const currentQuantity = watch("quantity") || 0;
 
   const handleQuantityChange = (change) => {
     const currentValue = getValues("quantity") || 0;
@@ -79,9 +82,11 @@ export default function StockForm({ stockToEdit }) {
         // If quantity changed, record it in history
         if (quantityChange !== 0) {
           const operation = quantityChange > 0 ? 'restock' : 'usage';
+          const changeAmount = Math.abs(quantityChange);
+          
           await recordChange({
             id: stockToEdit.id,
-            change: Math.abs(quantityChange),
+            change: changeAmount,
             operation
           }).unwrap();
         }
@@ -174,7 +179,7 @@ export default function StockForm({ stockToEdit }) {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">₱</InputAdornment>
-                  ),//
+                  ),
                 }}
               />
             )}
@@ -204,6 +209,7 @@ export default function StockForm({ stockToEdit }) {
                         <IconButton 
                           onClick={() => handleQuantityChange(-1)}
                           size="large"
+                          disabled={currentQuantity <= 0}
                         >
                           <Remove fontSize="large" />
                         </IconButton>
@@ -219,6 +225,12 @@ export default function StockForm({ stockToEdit }) {
                 />
               )}
             />
+            {stockToEdit && (
+              <Typography variant="caption" color="textSecondary" sx={{ mt: 1, display: 'block' }}>
+                Current quantity: {stockToEdit.quantity} | New quantity: {currentQuantity} | 
+                Change: {currentQuantity - stockToEdit.quantity > 0 ? '+' : ''}{currentQuantity - stockToEdit.quantity}
+              </Typography>
+            )}
           </Grid>
         )}
         <Grid item xs={12}>
