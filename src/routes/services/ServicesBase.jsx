@@ -28,7 +28,7 @@ const ServicesBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 15,
+    pageSize: 10,
   });
 
   const { 
@@ -37,9 +37,10 @@ const ServicesBase = () => {
     isError, 
     refetch 
   } = useFetchServicesQuery({
-    page: paginationModel.page + 1,  // MUI uses 0-based index, API likely uses 1-based
-    limit: paginationModel.pageSize,
+    page: paginationModel.page + 1,
+    limit: 10,
   });
+
 
   const [deleteService] = useDeleteServiceMutation();
   const [selectedService, setSelectedService] = useState(null);
@@ -174,7 +175,7 @@ const ServicesBase = () => {
           rowCount={servicesData.totalResults}
           loading={isLoading}
           paginationMode="server"
-          pageSizeOptions={[15, 50, 100]}
+          pageSizeOptions={[10]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick

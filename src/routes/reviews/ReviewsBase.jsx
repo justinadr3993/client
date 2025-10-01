@@ -32,8 +32,8 @@ const ReviewsBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 15,
-  });
+    pageSize: 10,
+});
 
   const [deleteReview] = useDeleteReviewMutation();
   const [selectedReview, setSelectedReview] = useState(null);
@@ -210,7 +210,7 @@ const ReviewsBase = () => {
           rowCount={reviewsData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
-          pageSizeOptions={[15, 50, 100]}
+          pageSizeOptions={[10]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick

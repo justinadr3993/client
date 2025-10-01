@@ -23,7 +23,7 @@ const UserManagement = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 15,
+    pageSize: 10,
   });
 
   const { 
@@ -33,7 +33,7 @@ const UserManagement = () => {
     refetch 
   } = useFetchUsersQuery({
     page: paginationModel.page + 1,
-    limit: paginationModel.pageSize,
+    limit: 10,
   });
 
   const [deleteUser] = useDeleteUserMutation();
@@ -167,7 +167,7 @@ const UserManagement = () => {
           rowCount={usersData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
-          pageSizeOptions={[15, 50, 100]}
+          pageSizeOptions={[10]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick

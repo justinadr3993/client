@@ -30,7 +30,7 @@ const StocksBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 15,
+    pageSize: 10,
   });
 
   const { 
@@ -41,7 +41,7 @@ const StocksBase = () => {
     refetch 
   } = useFetchStocksQuery({
     page: paginationModel.page + 1,
-    limit: paginationModel.pageSize,
+    limit: 10,
   });
   
   const [updateStock] = useUpdateStockMutation();
@@ -208,7 +208,7 @@ const StocksBase = () => {
             loading={isLoading}
             rowCount={stocksData?.totalResults || 0}
             paginationMode="server"
-            pageSizeOptions={[15, 50, 100]}
+            pageSizeOptions={[10]}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             disableSelectionOnClick

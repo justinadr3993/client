@@ -25,7 +25,7 @@ export default function ServiceCategoriesBase() {
   const { data, isLoading, isError, refetch } = useFetchServiceCategoriesQuery({
     page: 1,
     limit: 10,
-  }); // Adjust as needed for pagination
+  }); 
   const [deleteServiceCategory] = useDeleteServiceCategoryMutation();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -150,7 +150,7 @@ export default function ServiceCategoriesBase() {
         <DataGrid
           rows={data.results || []}
           columns={columns}
-          pageSize={data.limit || 10}
+          pageSize={10}
           rowCount={data.totalResults}
           paginationMode="server"
           onPageChange={(newPage) => refetch({ page: newPage + 1 })}

@@ -26,7 +26,7 @@ const StaffsBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 15,
+    pageSize: 10,
   });
 
   const { 
@@ -36,7 +36,7 @@ const StaffsBase = () => {
     refetch 
   } = useFetchStaffsQuery({
     page: paginationModel.page + 1,
-    limit: paginationModel.pageSize,
+    limit: 10,
   });
 
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -172,7 +172,7 @@ const StaffsBase = () => {
           rowCount={staffsData?.totalResults || 0}
           loading={isLoading}
           paginationMode="server"
-          pageSizeOptions={[15, 50, 100]}
+          pageSizeOptions={[10]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick
