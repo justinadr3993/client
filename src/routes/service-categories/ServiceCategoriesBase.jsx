@@ -8,6 +8,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  CircularProgress,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -22,14 +23,27 @@ import { ButtonsContainer } from "../services/ServiceBase.styles";
 export default function ServiceCategoriesBase() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { data, isLoading, isError, refetch } = useFetchServiceCategoriesQuery({
-    page: 1,
-    limit: 10,
-  }); // Adjust as needed for pagination
+  
+  const [paginationModel, setPaginationModel] = useState({
+    page: 0,
+    pageSize: 15,
+  });
+
+  const { 
+    data: categoriesData = { results: [], totalResults: 0 }, 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useFetchServiceCategoriesQuery({
+    page: paginationModel.page + 1,
+    limit: paginationModel.pageSize,
+  });
+
   const [deleteServiceCategory] = useDeleteServiceCategoryMutation();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  const [alert, setAlert] = useState(location.state?.alert || null); // Use the alert from location state
+  const [alert, setAlert] = useState(location.state?.alert || null);
 
   useEffect(() => {
     if (location.state?.alert) {
@@ -67,9 +81,7 @@ export default function ServiceCategoriesBase() {
           severity: "success",
         });
       } catch (error) {
-        // Access the error message properly
-        const errorMessage =
-          error.data?.message || error.message || "An error occurred";
+        const errorMessage = error.data?.message || error.message || "An error occurred";
         setAlert({
           message: `Error deleting category: ${errorMessage}`,
           severity: "error",
@@ -77,14 +89,6 @@ export default function ServiceCategoriesBase() {
       }
     }
   };
-
-  if (isLoading) {
-    return <Typography>Loading...</Typography>;
-  }
-
-  if (isError) {
-    return <Typography>Error loading categories</Typography>;
-  }
 
   const columns = [
     { field: "id", headerName: "ID", width: 100 },
@@ -117,6 +121,26 @@ export default function ServiceCategoriesBase() {
     },
   ];
 
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress />
+        </Box>
+      </DashboardLayout>
+    );
+  }
+
+  if (isError) {
+    return (
+      <DashboardLayout>
+        <Typography color="error">
+          Error loading categories: {error?.data?.message || "Unknown error"}
+        </Typography>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       {alert && (
@@ -130,7 +154,7 @@ export default function ServiceCategoriesBase() {
       <Typography variant="h4" gutterBottom>
         Manage Service Categories
       </Typography>
-      <Box sx={{ height: 400, width: "100%" }}>
+      <Box sx={{ height: 650, width: "100%" }}>
         <ButtonsContainer>
           <Button
             variant="contained"
@@ -148,12 +172,15 @@ export default function ServiceCategoriesBase() {
           </Button>
         </ButtonsContainer>
         <DataGrid
-          rows={data.results || []}
+          rows={categoriesData.results}
           columns={columns}
-          pageSize={data.limit || 10}
-          rowCount={data.totalResults}
+          rowCount={categoriesData.totalResults || 0}
+          loading={isLoading}
           paginationMode="server"
-          onPageChange={(newPage) => refetch({ page: newPage + 1 })}
+          pageSizeOptions={[15, 50, 100]}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          disableSelectionOnClick
         />
         <Dialog
           open={openDialog}
