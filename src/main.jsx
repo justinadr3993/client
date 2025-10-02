@@ -10,7 +10,6 @@ import theme from "./styles/theme.js";
 import { Analytics } from "@vercel/analytics/react";
 import "./styles/index.css";
 
-// Define your router configuration
 const router = createBrowserRouter([{ path: "*", element: <Root /> }]);
 
 // Render the application

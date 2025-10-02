@@ -6,10 +6,10 @@ const API_URL = import.meta.env.VITE_API_URL;
 export const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_URL,
   prepareHeaders: (headers) => {
-    const token = handleTokenExpiration(); // Check token expiration and handle it
+    const token = handleTokenExpiration();
 
     if (token) {
-      headers.set("Authorization", `Bearer ${token}`); // Set the Authorization header
+      headers.set("Authorization", `Bearer ${token}`);
     }
     return headers;
   },
