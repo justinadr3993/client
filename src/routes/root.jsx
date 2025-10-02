@@ -112,7 +112,7 @@ export default function Root() {
         />
       </Route>
 
-      {/* Appointments routes */}
+      {/* Appointments routes - All roles can access */}
       <Route
         path="/appointments"
         element={
@@ -140,7 +140,7 @@ export default function Root() {
         />
       </Route>
 
-      {/* Staffs routes */}
+      {/* Staffs routes - Admin only */}
       <Route
         path="/manage-staffs"
         element={
@@ -168,7 +168,7 @@ export default function Root() {
         />
       </Route>
 
-      {/* Services routes */}
+      {/* Services routes - Admin only */}
       <Route
         path="/manage-services"
         element={
@@ -196,7 +196,7 @@ export default function Root() {
         />
       </Route>
 
-      {/* Service Categories routes */}
+      {/* Service Categories routes - Admin only */}
       <Route
         path="/manage-service-categories"
         element={
@@ -224,11 +224,11 @@ export default function Root() {
         />
       </Route>
 
-      {/* Stock Management routes */}
+      {/* Stock Management routes - Admin and Staff */}
       <Route
         path="/manage-stocks"
         element={
-          <ProtectedRoute allowedRoles={["admin"]}>
+          <ProtectedRoute allowedRoles={["admin", "staff"]}>
             <Outlet />
           </ProtectedRoute>
         }
@@ -252,11 +252,11 @@ export default function Root() {
         />
       </Route>
 
-      {/* Review routes */}
+      {/* Review routes - Admin (all), Staff (all), User (own) */}
       <Route
         path="/reviews"
         element={
-          <ProtectedRoute allowedRoles={["admin", "user"]}>
+          <ProtectedRoute allowedRoles={["admin", "staff", "user"]}>
             <Outlet />
           </ProtectedRoute>
         }
@@ -280,7 +280,7 @@ export default function Root() {
         />
       </Route>
 
-      {/* User Management routes */}
+      {/* User Management routes - Admin only */}
       <Route
         path="/manage-users"
         element={
@@ -292,7 +292,7 @@ export default function Root() {
         <Route index element={<UserManagement />} />
       </Route>
 
-      {/* Profile Management routes */}
+      {/* Profile Management routes - All roles */}
       <Route
         path="/profile"
         element={

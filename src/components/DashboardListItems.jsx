@@ -48,7 +48,8 @@ export default function DashboardListItems() {
         <ListItemText primary="Appointments" />
       </ListItemButton>
       
-      {(userRole === "user" || userRole === "admin") && (
+      {/* Reviews: Admin (all), Staff (all), User (own) */}
+      {(userRole === "admin" || userRole === "staff" || userRole === "user") && (
         <ListItemButton component={Link} to="/reviews">
           <ListItemIcon>
             <StarIcon />
@@ -57,6 +58,17 @@ export default function DashboardListItems() {
         </ListItemButton>
       )}
       
+      {/* Stock Management: Admin and Staff */}
+      {(userRole === "admin" || userRole === "staff") && (
+        <ListItemButton component={Link} to="/manage-stocks">
+          <ListItemIcon>
+            <InventoryIcon />
+          </ListItemIcon>
+          <ListItemText primary="Stock" />
+        </ListItemButton>
+      )}
+      
+      {/* Admin Only Features */}
       {userRole === "admin" && (
         <>
           <ListItemButton component={Link} to="/manage-staffs">
@@ -64,13 +76,6 @@ export default function DashboardListItems() {
               <ContentCutIcon />
             </ListItemIcon>
             <ListItemText primary="Staffs" />
-          </ListItemButton>
-
-          <ListItemButton component={Link} to="/manage-stocks">
-            <ListItemIcon>
-              <InventoryIcon />
-            </ListItemIcon>
-            <ListItemText primary="Stock" />
           </ListItemButton>
 
           <ListItemButton component={Link} to="/manage-services">

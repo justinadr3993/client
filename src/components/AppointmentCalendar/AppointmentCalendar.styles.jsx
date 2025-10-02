@@ -6,14 +6,8 @@ const StyledSlot = styled(Paper, {
 })(({ theme, isBooked, isSelected }) => ({
   padding: theme.spacing(1.5),
   textAlign: "center",
-  backgroundColor: isBooked
-    ? "#ccc"
-    : isSelected
-    ? theme.palette.primary.light
-    : theme.palette.background.paper,
-  border: isSelected
-    ? `2px solid ${theme.palette.primary.main}`
-    : "2px solid transparent",
+  backgroundColor: isBooked ? "#ccc" : isSelected ? theme.palette.primary.light : theme.palette.background.paper,
+  border: isSelected ? `2px solid ${theme.palette.primary.main}` : "2px solid transparent",
 }));
 
 export default StyledSlot;
