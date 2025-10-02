@@ -13,7 +13,7 @@ export default defineConfig({
       },
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: "RAS Autocare",
+        name: "RAS Autocare Reservation App",
         short_name: "RasReserve",
         description: "Car servicing management system for businesses",
         theme_color: "#AF8447",
