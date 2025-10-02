@@ -8,7 +8,7 @@ export const authApi = createApi({
   endpoints: (builder) => ({
     registerUser: builder.mutation({
       query: (newUser) => ({
-        url: "/auth/register",
+        url: "/auth/register", // Register endpoint for new users
         method: "POST",
         body: newUser,
       }),
@@ -16,7 +16,7 @@ export const authApi = createApi({
     }),
     loginUser: builder.mutation({
       query: ({ email, password }) => ({
-        url: `/auth/login`,
+        url: `/auth/login`, // Login endpoint
         method: "POST",
         body: { email, password },
       }),
@@ -47,16 +47,15 @@ export const authApi = createApi({
     }),
     resetPassword: builder.mutation({
       query: ({ token, password }) => ({
-        url: `/auth/reset-password`,
+        url: `/auth/reset-password?token=${token}`,
         method: "POST",
-        body: { token, password },
+        body: { password },
       }),
     }),
     verifyEmail: builder.mutation({
       query: (token) => ({
-        url: `/auth/verify-email`,
+        url: `/auth/verify-email?token=${token}`,
         method: 'POST',
-        body: { token },
       }),
     }),
   }),
