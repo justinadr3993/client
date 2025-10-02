@@ -1,9 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 
-// Define your custom font families
 const serifFont = '"Merriweather", serif';
 
-// Create a theme instance with custom fonts and button overrides
 const theme = createTheme({
   typography: {
     fontFamily: serifFont, // Default font for all text
@@ -11,11 +9,9 @@ const theme = createTheme({
       fontWeight: 600,
       fontSize: "3rem",
       "@media (max-width:900px)": {
-        // Breakpoint for md (900px)
         fontSize: "2.5rem",
       },
       "@media (max-width:600px)": {
-        // Breakpoint for sm (600px)
         fontSize: "2rem",
       },
     },
@@ -23,11 +19,9 @@ const theme = createTheme({
       fontWeight: 500,
       fontSize: "2.25rem",
       "@media (max-width:900px)": {
-        // Breakpoint for md (900px)
         fontSize: "1.75rem",
       },
       "@media (max-width:600px)": {
-        // Breakpoint for sm (600px)
         fontSize: "1.5rem",
       },
     },
@@ -35,11 +29,9 @@ const theme = createTheme({
       fontWeight: 500,
       fontSize: "1.75rem",
       "@media (max-width:900px)": {
-        // Breakpoint for md (900px)
         fontSize: "1.5rem",
       },
       "@media (max-width:600px)": {
-        // Breakpoint for sm (600px)
         fontSize: "1.25rem",
       },
     },
@@ -47,11 +39,9 @@ const theme = createTheme({
       fontWeight: 500,
       fontSize: "1.5rem",
       "@media (max-width:900px)": {
-        // Breakpoint for md (900px)
         fontSize: "1.25rem",
       },
       "@media (max-width:600px)": {
-        // Breakpoint for sm (600px)
         fontSize: "1rem",
       },
     },
@@ -73,7 +63,7 @@ const theme = createTheme({
       darker: "#212121",
     },
     background: {
-      default: "#fff",      // This sets the default background color
+      default: "#fff",      // Default background color
       paper: "#fff",        // Default for MUI Paper components
       custom: "#f5f9ff",    // Custom light blue background
     },
@@ -85,7 +75,7 @@ const theme = createTheme({
           borderColor: "currentColor",
           "&:hover": {
             borderColor: "currentColor",
-            backgroundColor: "#1976d2",  // Changed to blue
+            backgroundColor: "#1976d2",
             color: "#fff",
           },
         },
