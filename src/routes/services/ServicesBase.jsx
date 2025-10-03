@@ -89,6 +89,7 @@ const ServicesBase = () => {
     }
   };
 
+  // Create a map of category IDs to category names for easy lookup
   const categoryMap = {};
   if (categoriesData.results || categoriesData) {
     const categories = categoriesData.results || categoriesData;
@@ -99,7 +100,7 @@ const ServicesBase = () => {
 
   const getCategoryName = (categoryId) => {
     if (typeof categoryId === 'object' && categoryId.name) {
-      return categoryId.name;
+      return categoryId.name; // If category is populated as an object
     }
     return categoryMap[categoryId] || categoryId || "Unknown Category";
   };
