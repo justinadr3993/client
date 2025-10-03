@@ -51,6 +51,18 @@ export const appointmentsApi = createApi({
       },
       providesTags: ["Appointment"],
     }),
+    // Add this new query for staff to fetch appointments without user filter
+    fetchAppointmentsForStaff: builder.query({
+      query: ({ page, limit, status, date }) => {
+        const params = new URLSearchParams();
+        if (page) params.append("page", page);
+        if (limit) params.append("limit", limit);
+        if (status) params.append("status", status);
+        if (date) params.append("date", date);
+        return `/appointments?${params.toString()}`;
+      },
+      providesTags: ["Appointment"],
+    }),
     fetchAppointmentById: builder.query({
       query: (id) => `/appointments/${id}`,
       providesTags: ["Appointment"],
@@ -64,5 +76,6 @@ export const {
   useDeleteAppointmentMutation,
   useFetchAllAppointmentsQuery,
   useFetchAppointmentsByUserQuery,
+  useFetchAppointmentsForStaffQuery,
   useFetchAppointmentByIdQuery,
 } = appointmentsApi;

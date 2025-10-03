@@ -39,6 +39,7 @@ import * as XLSX from 'xlsx';
 import {
   useFetchAllAppointmentsQuery,
   useFetchAppointmentsByUserQuery,
+  useFetchAppointmentsForStaffQuery,
   useDeleteAppointmentMutation,
   useUpdateAppointmentMutation,
 } from "../../services/api/appointmentsApi";
@@ -62,7 +63,6 @@ const AppointmentsBase = () => {
     pageSize: 100,
   });
   
-  // Pagination for history table
   const [historyPage, setHistoryPage] = useState(0);
   const [historyRowsPerPage, setHistoryRowsPerPage] = useState(50);
 
@@ -108,6 +108,12 @@ const AppointmentsBase = () => {
         limit: paginationModel.pageSize,
       });
       break;
+    case "staff":
+      appointmentsQuery = useFetchAppointmentsForStaffQuery({
+        page: paginationModel.page + 1,
+        limit: paginationModel.pageSize,
+      });
+      break;
     case "user":
       appointmentsQuery = useFetchAppointmentsByUserQuery({
         userId,
@@ -117,7 +123,7 @@ const AppointmentsBase = () => {
       break;
     default:
       appointmentsQuery = {
-        data: [],
+        data: { results: [] },
         isLoading: false,
         isError: true,
         refetch: () => {},
@@ -149,8 +155,7 @@ const AppointmentsBase = () => {
       .filter(appt => ["Completed", "Cancelled", "No Arrival"].includes(appt.status))
       .sort((a, b) => new Date(b.appointmentDateTime) - new Date(a.appointmentDateTime));
 
-    // Apply filters
-    if (user?.role === "admin") {
+    if (user?.role === "admin" || user?.role === "staff") {
       if (nameFilter) {
         filtered = filtered.filter(appt => 
           `${appt.firstName} ${appt.lastName}`.toLowerCase().includes(nameFilter.toLowerCase())
@@ -188,13 +193,12 @@ const AppointmentsBase = () => {
   }, [appointmentsData, nameFilter, emailFilter, phoneFilter, statusFilter, bookedDateFilter, appointmentDateFilter, user?.role]);
 
   const exportToExcel = () => {
-    // Prepare the data for export
     const dataForExport = filteredHistoryAppointments.map(appointment => {
-      const serviceName = appointment.serviceType; // You might want to fetch the actual service name here
-      const servicePrice = appointment.serviceType; // And actual price here
+      const serviceName = appointment.serviceType; 
+      const servicePrice = appointment.serviceType; 
       
       return {
-        ...(user?.role === "admin" && {
+        ...((user?.role === "admin" || user?.role === "staff") && {
           'Full Name': `${appointment.firstName} ${appointment.lastName}`,
           'Email': appointment.email,
           'Phone': appointment.contactNumber,
@@ -358,12 +362,14 @@ const AppointmentsBase = () => {
   };
 
   const columns = [
-    {
-      field: "fullName",
-      headerName: "Full Name",
-      width: 200,
-      renderCell: (params) => `${params.row.firstName} ${params.row.lastName}`,
-    },
+    ...((user?.role === "admin" || user?.role === "staff") ? [
+      {
+        field: "fullName",
+        headerName: "Full Name",
+        width: 200,
+        renderCell: (params) => `${params.row.firstName} ${params.row.lastName}`,
+      },
+    ] : []),
     {
       field: "serviceType",
       headerName: "Service",
@@ -420,15 +426,17 @@ const AppointmentsBase = () => {
             View
           </Button>
           
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => handleEdit(params.row.id)}
-            sx={{ mr: 1 }}
-          >
-            Edit
-          </Button>
+          {(user?.role === "admin" || user?.role === "staff") && (
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={() => handleEdit(params.row.id)}
+              sx={{ mr: 1 }}
+            >
+              Edit
+            </Button>
+          )}
           
           <IconButton
             aria-label="more"
@@ -446,7 +454,7 @@ const AppointmentsBase = () => {
             open={Boolean(anchorEl && currentAppointment?.id === params.row.id)}
             onClose={handleMenuClose}
           >
-            {user?.role === "admin" && [
+            {(user?.role === "admin" || user?.role === "staff") && [
               <MenuItem key="complete" onClick={() => handleStatusChange("Completed")}>
                 Mark as Completed
               </MenuItem>,
@@ -478,11 +486,22 @@ const AppointmentsBase = () => {
   ];
 
   if (isLoading) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography>Loading appointments...</Typography>
+      </DashboardLayout>
+    );
   }
 
   if (isError) {
-    return <Typography>Error loading appointments</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography color="error">Error loading appointments</Typography>
+        <Button onClick={refetch} variant="contained" sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -496,7 +515,8 @@ const AppointmentsBase = () => {
         />
       )}
       <Typography variant="h4" gutterBottom>
-        {user?.role === "admin" ? "Manage All Appointments" : "My Appointments"}
+        {user?.role === "admin" ? "Manage All Appointments" : 
+         user?.role === "staff" ? "Manage Appointments" : "My Appointments"}
       </Typography>
 
       <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
@@ -513,13 +533,15 @@ const AppointmentsBase = () => {
               mb: 2,
             }}
           >
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => navigate("/appointments/create")}
-            >
-              Create New Appointment
-            </Button>
+            {(user?.role === "user" || user?.role === "staff") && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => navigate("/appointments/create")}
+              >
+                Create New Appointment
+              </Button>
+            )}
           </Box>
           <DataGrid
             rows={currentAppointments}
@@ -541,13 +563,13 @@ const AppointmentsBase = () => {
             aria-describedby="alert-dialog-description"
           >
             <DialogTitle id="alert-dialog-title">
-              {user?.role === "admin"
+              {(user?.role === "admin" || user?.role === "staff")
                 ? "Delete Appointment"
                 : "Cancel Appointment"}
             </DialogTitle>
             <DialogContent>
               <DialogContentText id="alert-dialog-description">
-                {user?.role === "admin"
+                {(user?.role === "admin" || user?.role === "staff")
                   ? `Are you sure you want to delete the appointment for ${selectedAppointment?.firstName} ${selectedAppointment?.lastName}?`
                   : `Are you sure you want to cancel the appointment for ${selectedAppointment?.firstName} ${selectedAppointment?.lastName}?`}
               </DialogContentText>
@@ -557,7 +579,7 @@ const AppointmentsBase = () => {
                 Cancel
               </Button>
               <Button
-                onClick={user?.role === "admin" ? handleDelete : handleCancel}
+                onClick={(user?.role === "admin" || user?.role === "staff") ? handleDelete : handleCancel}
                 color="secondary"
                 autoFocus
               >
@@ -602,7 +624,7 @@ const AppointmentsBase = () => {
         <Box sx={{ mt: 2 }}>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2, justifyContent: 'space-between' }}>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              {user?.role === "admin" && (
+              {(user?.role === "admin" || user?.role === "staff") && (
                 <>
                   <TextField
                     label="Filter by Name"
@@ -710,7 +732,7 @@ const AppointmentsBase = () => {
             <Table sx={{ minWidth: 650 }} aria-label="appointment history table" size="small">
               <TableHead>
                 <TableRow>
-                  {user?.role === "admin" && (
+                  {(user?.role === "admin" || user?.role === "staff") && (
                     <>
                       <TableCell sx={{ fontSize: '0.75rem' }}>Full Name</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem' }}>Email</TableCell>
@@ -731,7 +753,7 @@ const AppointmentsBase = () => {
                   .slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage)
                   .map((appointment) => (
                   <TableRow key={appointment.id}>
-                    {user?.role === "admin" && (
+                    {(user?.role === "admin" || user?.role === "staff") && (
                       <>
                         <TableCell sx={{ fontSize: '0.75rem' }}>{`${appointment.firstName} ${appointment.lastName}`}</TableCell>
                         <TableCell sx={{ fontSize: '0.75rem' }}>{appointment.email}</TableCell>
@@ -769,7 +791,7 @@ const AppointmentsBase = () => {
                 <TableRow>
                   <TablePagination
                     rowsPerPageOptions={[15, 30, 50]}
-                    colSpan={user?.role === "admin" ? 10 : 7}
+                    colSpan={(user?.role === "admin" || user?.role === "staff") ? 10 : 7}
                     count={filteredHistoryAppointments.length}
                     rowsPerPage={historyRowsPerPage}
                     page={historyPage}
