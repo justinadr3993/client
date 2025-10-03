@@ -1,5 +1,4 @@
 import StaffsSection from "../sections/StaffsSection/StaffsSection";
-import BreadcrumbsComponent from "../components/BreadcrumbsComponent/BreadcrumbsComponent";
 import TestimonialsSection from "../sections/TestimonialsSection/TestimonialsSection";
 import Footer from "../components/Footer/Footer";
 import Header from "../components/Header/Header";
@@ -11,7 +10,6 @@ export default function Staffs() {
   return (
     <>
       <Header />
-      <BreadcrumbsComponent />
       <StaffsSection />
       <TestimonialsSection />
       <ReviewsSection />

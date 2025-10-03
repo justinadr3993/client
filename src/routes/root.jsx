@@ -16,6 +16,9 @@ import StaffDashboard from "./dashboards/StaffDashboard";
 import AppointmentsBase from "./appointments/AppointmentsBase";
 import AppointmentForm from "../forms/AppointmentForm";
 import EditAppointment from "./appointments/EditAppointment";
+import StocksBase from "./stocks/StocksBase";
+import StockForm from "../forms/StockForm";
+import EditStock from "./stocks/EditStock";
 import StaffsBase from "./staffs/StaffsBase";
 import StaffForm from "../forms/StaffForm";
 import EditStaff from "./staffs/EditStaff";
@@ -34,9 +37,7 @@ import BootServer from "./auth/BootServer";
 import ForgotPassword from "./auth/ForgotPassword";
 import ResetPassword from "./auth/ResetPassword";
 import VerifyEmail from "./auth/VerifyEmail";
-import StocksBase from "./stocks/StocksBase";
-import StockForm from "../forms/StockForm";
-import EditStock from "./stocks/EditStock";
+
 
 export default function Root() {
   return (
