@@ -16,7 +16,7 @@ import {
   useFetchServicesQuery,
   useDeleteServiceMutation,
 } from "../../services/api/servicesApi";
-import { useFetchServiceCategoryByIdQuery } from "../../services/api/serviceCategoriesApi";
+import { useFetchServiceCategoriesQuery } from "../../services/api/serviceCategoriesApi";
 import FadeAlert from "../../components/FadeAlert/FadeAlert";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { ButtonsContainer } from "./ServiceBase.styles";
@@ -28,19 +28,17 @@ const ServicesBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
+    pageSize: 100,
   });
 
   const { 
-    data: servicesData = { results: [], totalResults: 0 }, 
+    data: servicesData = [], 
     isLoading, 
     isError, 
     refetch 
-  } = useFetchServicesQuery({
-    page: paginationModel.page + 1,
-    limit: 10,
-  });
+  } = useFetchServicesQuery();
 
+  const { data: categoriesData = [] } = useFetchServiceCategoriesQuery();
 
   const [deleteService] = useDeleteServiceMutation();
   const [selectedService, setSelectedService] = useState(null);
@@ -91,18 +89,43 @@ const ServicesBase = () => {
     }
   };
 
+  const categoryMap = {};
+  if (categoriesData.results || categoriesData) {
+    const categories = categoriesData.results || categoriesData;
+    categories.forEach(category => {
+      categoryMap[category.id] = category.name;
+    });
+  }
+
+  const getCategoryName = (categoryId) => {
+    if (typeof categoryId === 'object' && categoryId.name) {
+      return categoryId.name;
+    }
+    return categoryMap[categoryId] || categoryId || "Unknown Category";
+  };
+
   const columns = [
-    { field: "title", headerName: "Title", width: 150 },
+    { 
+      field: "title", 
+      headerName: "Title", 
+      width: 200,
+      flex: 1 
+    },
     {
       field: "category",
       headerName: "Category",
-      width: 150,
+      width: 200,
+      flex: 1,
       renderCell: (params) => {
-        const { data: category } = useFetchServiceCategoryByIdQuery(params.row.category);
-        return category ? category.name : "Loading...";
+        return getCategoryName(params.row.category);
       },
     },
-    { field: "price", headerName: "Price", width: 100, renderCell: (params) => `₱${params.row.price}` },
+    { 
+      field: "price", 
+      headerName: "Price", 
+      width: 120,
+      renderCell: (params) => `₱${params.row.price}` 
+    },
     {
       field: "actions",
       headerName: "Actions",
@@ -132,11 +155,22 @@ const ServicesBase = () => {
   ];
 
   if (isLoading) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography>Loading services...</Typography>
+      </DashboardLayout>
+    );
   }
 
   if (isError) {
-    return <Typography>Error loading services</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography color="error">Error loading services</Typography>
+        <Button onClick={refetch} variant="contained" sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -170,12 +204,10 @@ const ServicesBase = () => {
           </Button>
         </ButtonsContainer>
         <DataGrid
-          rows={servicesData.results}
+          rows={servicesData.results || servicesData || []}
           columns={columns}
-          rowCount={servicesData.totalResults}
           loading={isLoading}
-          paginationMode="server"
-          pageSizeOptions={[10]}
+          pageSizeOptions={[15, 30, 50, 100]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick
