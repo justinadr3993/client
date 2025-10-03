@@ -1,7 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { authApi } from "../api/authApi";
 
-// Initialize user from localStorage or sessionStorage
 const storedUser =
   JSON.parse(localStorage.getItem("user")) ||
   JSON.parse(sessionStorage.getItem("user"));
@@ -29,7 +28,7 @@ const authSlice = createSlice({
         authApi.endpoints.loginUser.matchFulfilled,
         (state, action) => {
           state.user = action.payload.user;
-          const token = action.payload.tokens?.access?.token; // Use optional chaining
+          const token = action.payload.tokens?.access?.token;
           const refreshToken = action.payload.tokens?.refresh?.token;
           const userString = JSON.stringify(state.user);
 

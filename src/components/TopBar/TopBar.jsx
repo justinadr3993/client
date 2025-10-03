@@ -10,8 +10,6 @@ import {
   TopBarContainer,
   IconText,
   IconStyled,
-  LinkIcon,
-  LinkIconContainer,
   HorizontalLine,
   StyledLink,
 } from "./TopBar.styles.jsx";

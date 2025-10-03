@@ -51,7 +51,7 @@ export const appointmentsApi = createApi({
       },
       providesTags: ["Appointment"],
     }),
-    // Add this new query for staff to fetch appointments without user filter
+    // TODO: use the fetchAllAppointments instead
     fetchAppointmentsForStaff: builder.query({
       query: ({ page, limit, status, date }) => {
         const params = new URLSearchParams();

@@ -6,7 +6,6 @@ import {
   Container,
   Typography,
   IconButton,
-  Badge,
   Divider,
   List,
   useMediaQuery,
