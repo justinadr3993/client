@@ -3,15 +3,11 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useRegisterUserMutation } from "../../services/api/authApi";
-import { useLazyFetchUserByIdQuery } from "../../services/api/usersApi";
-import useRedirectByRole from "../../utils/redirectByRole";
 import { useNavigate } from "react-router-dom";
 import {
   Avatar,
   Button,
   TextField,
-  FormControlLabel,
-  Checkbox,
   Grid,
   Box,
   Typography,
@@ -35,7 +31,12 @@ const schema = yup.object().shape({
     .string()
     .email("Invalid email format")
     .required("Email is required"),
-  password: yup.string().required("Password is required"),
+  password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[a-zA-Z]/, "Password must contain at least one letter")
+    .matches(/\d/, "Password must contain at least one number")
+    .required("Password is required"),
   confirmPassword: yup
     .string()
     .required("Confirm password is required")
@@ -48,19 +49,15 @@ const schema = yup.object().shape({
       "Enter a valid phone number starting with 0 and containing 11 digits"
     )
     .required("Contact number is required"),
-  isAdmin: yup.boolean(),
 });
 
 export default function SignUp() {
-  const [registerUser, { isLoading }] = useRegisterUserMutation();
-  const redirectByRole = useRedirectByRole();
-  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+  const [registerUser, { isLoading, isSuccess, error }] = useRegisterUserMutation();
   const [alert, setAlert] = useState({ type: "", message: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
   const navigate = useNavigate();
-
-  const [fetchUserById, { data: updatedUser }] = useLazyFetchUserByIdQuery();
 
   const {
     control,
@@ -72,38 +69,40 @@ export default function SignUp() {
   });
 
   const onSubmit = async (formData) => {
-    const role = formData.isAdmin ? "admin" : "user";
-    const { isAdmin, confirmPassword, ...userData } = formData;
-
+    const { confirmPassword, ...userData } = formData;
+    
     try {
-      const result = await registerUser({ ...userData, role }).unwrap();
-
+      const result = await registerUser(userData).unwrap();
+      
       if (result) {
-        const { tokens, user } = result;
-        localStorage.setItem("token", tokens.access.token);
-        localStorage.setItem("refreshToken", tokens.refresh.token);
-        localStorage.setItem("user", JSON.stringify(user));
-        fetchUserById(user.id);
+        setAlert({
+          type: "success",
+          message: "Registration successful! Verification email sent. Please check your inbox.",
+        });
+        
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
       }
     } catch (error) {
+      console.error("Registration error:", error);
       setAlert({
         type: "error",
-        message: `Registration failed: ${error.data?.message || error.message}`,
+        message: `Registration failed: ${error.data?.message || error.message || "Please try again"}`,
       });
     }
   };
 
+  // Handle mutation states
   useEffect(() => {
-    if (updatedUser) {
-      setAlert({ 
-        type: "success", 
-        message: "Verification link has been sent! Check your inbox",
+    if (error) {
+      setAlert({
+        type: "error",
+        message: `Registration failed: ${error.data?.message || error.message || "Please try again"}`,
       });
-      setTimeout(() => {
-        navigate("/login");
-      }, 2500);
     }
-  }, [updatedUser, navigate]);
+  }, [error]);
 
   const password = watch("password");
 
@@ -307,7 +306,6 @@ export default function SignUp() {
                 )}
               />
             </Grid>
-           
           </Grid>
           <Button
             type="submit"
