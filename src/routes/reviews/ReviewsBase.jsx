@@ -32,8 +32,8 @@ const ReviewsBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
-});
+    pageSize: 100
+  });
 
   const [deleteReview] = useDeleteReviewMutation();
   const [selectedReview, setSelectedReview] = useState(null);
@@ -57,6 +57,11 @@ const ReviewsBase = () => {
       navigate(location.pathname, { replace: true });
     }
   }, [location, navigate]);
+
+  const ServiceName = ({ serviceId }) => {
+    const { data: service } = useFetchServiceByIdQuery(serviceId);
+    return service ? service.title : "Loading...";
+  };
 
   const handleViewDetails = (review) => {
     setSelectedReview(review);
@@ -101,16 +106,15 @@ const ReviewsBase = () => {
       field: "name",
       headerName: "Reviewer",
       width: 200,
+      flex: 1,
       renderCell: (params) => params.row.name,
     },
     {
       field: "serviceType",
       headerName: "Service",
       width: 200,
-      renderCell: (params) => {
-        const { data: service } = useFetchServiceByIdQuery(params.row.serviceType);
-        return service ? service.title : "Loading...";
-      },
+      flex: 1,
+      renderCell: (params) => <ServiceName serviceId={params.row.serviceType} />,
     },
     {
       field: "rating",
@@ -161,11 +165,22 @@ const ReviewsBase = () => {
   ];
 
   if (isLoading) {
-    return <Typography>Loading...</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography>Loading reviews...</Typography>
+      </DashboardLayout>
+    );
   }
 
   if (isError) {
-    return <Typography>Error loading reviews</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography color="error">Error loading reviews</Typography>
+        <Button onClick={refetch} variant="contained" sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </DashboardLayout>
+    );
   }
 
   const filteredReviews =
@@ -207,10 +222,10 @@ const ReviewsBase = () => {
         <DataGrid
           rows={filteredReviews}
           columns={columns}
-          rowCount={reviewsData?.totalResults || 0}
+          rowCount={filteredReviews.length}
           loading={isLoading}
-          paginationMode="server"
-          pageSizeOptions={[10]}
+          paginationMode="client"
+          pageSizeOptions={[15, 30, 50, 100]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick

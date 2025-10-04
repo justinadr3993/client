@@ -7,7 +7,12 @@ export const stocksApi = createApi({
   tagTypes: ["Stock"],
   endpoints: (builder) => ({
     fetchStocks: builder.query({
-      query: () => "/stocks",
+      query: ({ page, limit } = {}) => {
+        const params = new URLSearchParams();
+        if (page) params.append("page", page);
+        if (limit) params.append("limit", limit);
+        return `/stocks?${params.toString()}`;
+      },
       providesTags: ["Stock"],
     }),
     fetchStockById: builder.query({

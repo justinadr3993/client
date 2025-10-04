@@ -30,7 +30,7 @@ const StocksBase = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
+    pageSize: 100,
   });
 
   const { 
@@ -41,7 +41,7 @@ const StocksBase = () => {
     refetch 
   } = useFetchStocksQuery({
     page: paginationModel.page + 1,
-    limit: 10,
+    limit: paginationModel.pageSize,
   });
   
   const [updateStock] = useUpdateStockMutation();
@@ -107,12 +107,14 @@ const StocksBase = () => {
     { 
       field: "type",
       headerName: "Item Name", 
-      width: 200 
+      width: 200,
+      flex: 1 
     },
     { 
       field: "category", 
       headerName: "Category", 
-      width: 150 
+      width: 150,
+      flex: 1 
     },
     { 
       field: "price", 
@@ -208,7 +210,7 @@ const StocksBase = () => {
             loading={isLoading}
             rowCount={stocksData?.totalResults || 0}
             paginationMode="server"
-            pageSizeOptions={[10]}
+            pageSizeOptions={[15, 30, 50, 100]}
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             disableSelectionOnClick

@@ -23,7 +23,7 @@ const UserManagement = () => {
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
-    pageSize: 10,
+    pageSize: 100,
   });
 
   const { 
@@ -33,7 +33,7 @@ const UserManagement = () => {
     refetch 
   } = useFetchUsersQuery({
     page: paginationModel.page + 1,
-    limit: 10,
+    limit: paginationModel.pageSize,
   });
 
   const [deleteUser] = useDeleteUserMutation();
@@ -86,6 +86,7 @@ const UserManagement = () => {
       field: "fullName",
       headerName: "Full Name",
       width: 200,
+      flex: 1,
       renderCell: (params) => {
         return `${params.row.firstName} ${params.row.lastName}`;
       },
@@ -94,11 +95,13 @@ const UserManagement = () => {
       field: "email",
       headerName: "Email",
       width: 250,
+      flex: 1,
     },
     {
       field: "contactNumber",
       headerName: "Contact Number",
       width: 150,
+      flex: 1,
     },
     {
       field: "role",
@@ -125,11 +128,22 @@ const UserManagement = () => {
   ];
 
   if (isLoading) {
-    return <Typography>Loading users...</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography>Loading users...</Typography>
+      </DashboardLayout>
+    );
   }
 
   if (isError) {
-    return <Typography>Error loading users</Typography>;
+    return (
+      <DashboardLayout>
+        <Typography color="error">Error loading users</Typography>
+        <Button onClick={refetch} variant="contained" sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </DashboardLayout>
+    );
   }
 
   return (
@@ -153,21 +167,14 @@ const UserManagement = () => {
             mb: 2,
           }}
         >
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate("/users/create")}
-          >
-            Add New User
-          </Button>
         </Box>
         <DataGrid
           rows={usersData?.results || []}
           columns={columns}
-          rowCount={usersData?.totalResults || 0}
+          rowCount={usersData?.results?.length || 0}
           loading={isLoading}
-          paginationMode="server"
-          pageSizeOptions={[10]}
+          paginationMode="client"
+          pageSizeOptions={[15, 30, 50, 100]}
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick

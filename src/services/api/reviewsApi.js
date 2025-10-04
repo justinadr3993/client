@@ -7,7 +7,12 @@ export const reviewsApi = createApi({
   tagTypes: ["Review"],
   endpoints: (builder) => ({
     fetchReviews: builder.query({
-      query: () => "/reviews",
+      query: ({ page, limit } = {}) => {
+        const params = new URLSearchParams();
+        if (page) params.append("page", page);
+        if (limit) params.append("limit", limit);
+        return `/reviews?${params.toString()}`;
+      },
       providesTags: ["Review"],
     }),
     fetchReviewById: builder.query({
