@@ -67,32 +67,30 @@ const StockAnalytics = () => {
     setTimeRange(newValue);
   };
 
-  const filterDataByDateRange = (data) => {
-    if (!data) return [];
+  // Transform history data for the chart
+  const prepareChartData = () => {
+    if (!history) return [];
+
+    // Group by date and operation
+    const groupedData = {};
     
-    let startDate, endDate;
-    
-    switch (timeRange) {
-      case 'week':
-        startDate = customStartDate.startOf('day');
-        endDate = customEndDate.endOf('day');
-        break;
-      case 'month':
-        startDate = customDate.startOf('month');
-        endDate = customDate.endOf('month');
-        break;
-      case 'year':
-        startDate = customDate.startOf('year');
-        endDate = customDate.endOf('year');
-        break;
-      default:
-        return data;
-    }
-    
-    return data.filter(item => {
-      const itemDate = dayjs(item.date);
-      return itemDate.isSameOrAfter(startDate) && itemDate.isSameOrBefore(endDate);
+    history.forEach(item => {
+      if (!groupedData[item.date]) {
+        groupedData[item.date] = {
+          date: item.date,
+          restock: 0,
+          usage: 0
+        };
+      }
+      
+      if (item.operation === 'restock') {
+        groupedData[item.date].restock += item.totalChange;
+      } else if (item.operation === 'usage') {
+        groupedData[item.date].usage += item.totalChange;
+      }
     });
+
+    return Object.values(groupedData).sort((a, b) => a.date.localeCompare(b.date));
   };
 
   const formatDateRange = () => {
@@ -119,7 +117,7 @@ const StockAnalytics = () => {
   }
 
   // Prepare data for charts
-  const filteredHistory = filterDataByDateRange(history);
+  const chartData = prepareChartData();
   const lowStockItems = analytics?.lowStockItemsList || [];
 
   return (
@@ -253,7 +251,7 @@ const StockAnalytics = () => {
               </Typography>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart
-                  data={filteredHistory}
+                  data={chartData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
@@ -271,23 +269,19 @@ const StockAnalytics = () => {
                     formatter={(value, name) => [`${value} items`, name === 'restock' ? 'Restocks' : 'Usage']}
                     labelFormatter={(label) => `Date: ${label}`}
                   />
-                  <Legend 
-                    formatter={(value) => value === 'restock' ? 'Restocks' : 'Usage'}
-                  />
+                  <Legend />
                   <Line
                     type="monotone"
-                    dataKey="totalChange"
-                    name="restock"
-                    data={filteredHistory.filter(item => item.operation === 'restock')}
+                    dataKey="restock"
                     stroke="#00C49F"
+                    strokeWidth={2}
                     activeDot={{ r: 8 }}
                   />
                   <Line
                     type="monotone"
-                    dataKey="totalChange"
-                    name="usage"
-                    data={filteredHistory.filter(item => item.operation === 'usage')}
+                    dataKey="usage"
                     stroke="#FF8042"
+                    strokeWidth={2}
                     activeDot={{ r: 8 }}
                   />
                 </LineChart>

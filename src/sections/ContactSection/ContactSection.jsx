@@ -136,7 +136,7 @@ export default function ContactSection() {
             <ContactIcon>
               <PhoneIcon />
             </ContactIcon>
-            <Typography variant="body1">+63912 3456 789</Typography>
+            <Typography variant="body1">+63932 927 1164</Typography>
           </ContactInfoItem>
 
           <ContactInfoItem>

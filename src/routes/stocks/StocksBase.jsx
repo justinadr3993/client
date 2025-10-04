@@ -108,18 +108,22 @@ const StocksBase = () => {
       field: "type",
       headerName: "Item Name", 
       width: 200,
-      flex: 1 
+      flex: 1,
+      minWidth: 200,
     },
     { 
       field: "category", 
       headerName: "Category", 
       width: 150,
-      flex: 1 
+      flex: 1,
+      minWidth: 150,
     },
     { 
       field: "price", 
       headerName: "Price", 
-      width: 150,
+      width: 120,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (params) => (
         <Typography>₱{(params.row.price || 0).toFixed(2)}</Typography>
       )
@@ -127,7 +131,9 @@ const StocksBase = () => {
     { 
       field: "quantity", 
       headerName: "Quantity",
-      width: 150,
+      width: 120,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (params) => (
         <Typography>{params.row.quantity || 0}</Typography>
       )
@@ -135,15 +141,16 @@ const StocksBase = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 180,
+      flex: 0.8,
+      minWidth: 180,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="contained"
             color="primary"
             size="small"
             onClick={() => handleEdit(params.row.id)}
-            sx={{ mr: 1 }}
           >
             Edit
           </Button>
@@ -214,6 +221,14 @@ const StocksBase = () => {
             paginationModel={paginationModel}
             onPaginationModelChange={setPaginationModel}
             disableSelectionOnClick
+            sx={{
+              '& .MuiDataGrid-cell': {
+                padding: '8px 12px',
+              },
+              '& .MuiDataGrid-columnHeaders': {
+                backgroundColor: '#f5f5f5',
+              },
+            }}
           />
         )}
       </Box>

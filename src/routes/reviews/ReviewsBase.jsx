@@ -105,21 +105,25 @@ const ReviewsBase = () => {
     {
       field: "name",
       headerName: "Reviewer",
-      width: 200,
+      width: 150,
       flex: 1,
+      minWidth: 150,
       renderCell: (params) => params.row.name,
     },
     {
       field: "serviceType",
       headerName: "Service",
-      width: 200,
+      width: 180,
       flex: 1,
+      minWidth: 180,
       renderCell: (params) => <ServiceName serviceId={params.row.serviceType} />,
     },
     {
       field: "rating",
       headerName: "Rating",
-      width: 150,
+      width: 130,
+      flex: 0.5,
+      minWidth: 130,
       renderCell: (params) => (
         <Rating 
           value={params.row.rating} 
@@ -132,22 +136,25 @@ const ReviewsBase = () => {
     {
       field: "date",
       headerName: "Review Date",
-      width: 150,
+      width: 130,
+      flex: 0.5,
+      minWidth: 130,
       renderCell: (params) =>
         dayjs(params.row.date).format("DD/MM/YYYY"),
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 180,
+      flex: 0.8,
+      minWidth: 180,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="contained"
             color="primary"
             size="small"
             onClick={() => user?.role === "admin" ? handleViewDetails(params.row) : navigate(`/reviews/edit/${params.row.id}`)}
-            sx={{ mr: 1 }}
           >
             {user?.role === "admin" ? "View" : "Edit"}
           </Button>
@@ -229,6 +236,14 @@ const ReviewsBase = () => {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px 12px',
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#f5f5f5',
+            },
+          }}
         />
 
         <Dialog

@@ -110,13 +110,15 @@ const ServicesBase = () => {
       field: "title", 
       headerName: "Title", 
       width: 200,
-      flex: 1 
+      flex: 1,
+      minWidth: 200,
     },
     {
       field: "category",
       headerName: "Category",
-      width: 200,
+      width: 180,
       flex: 1,
+      minWidth: 180,
       renderCell: (params) => {
         return getCategoryName(params.row.category);
       },
@@ -125,20 +127,23 @@ const ServicesBase = () => {
       field: "price", 
       headerName: "Price", 
       width: 120,
+      flex: 0.5,
+      minWidth: 120,
       renderCell: (params) => `₱${params.row.price}` 
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 180,
+      flex: 0.8,
+      minWidth: 180,
       renderCell: (params) => (
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="contained"
             color="primary"
             size="small"
             onClick={() => handleEdit(params.row.id)}
-            sx={{ mr: 1 }}
           >
             Edit
           </Button>
@@ -212,6 +217,14 @@ const ServicesBase = () => {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px 12px',
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#f5f5f5',
+            },
+          }}
         />
         <Dialog open={openDialog} onClose={handleCloseDialog}>
           <DialogTitle>Delete Service</DialogTitle>

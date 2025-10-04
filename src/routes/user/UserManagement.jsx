@@ -87,6 +87,7 @@ const UserManagement = () => {
       headerName: "Full Name",
       width: 200,
       flex: 1,
+      minWidth: 200,
       renderCell: (params) => {
         return `${params.row.firstName} ${params.row.lastName}`;
       },
@@ -96,33 +97,30 @@ const UserManagement = () => {
       headerName: "Email",
       width: 250,
       flex: 1,
-    },
-    {
-      field: "contactNumber",
-      headerName: "Contact Number",
-      width: 150,
-      flex: 1,
+      minWidth: 250,
     },
     {
       field: "role",
       headerName: "Role",
       width: 120,
+      flex: 0.5,
+      minWidth: 120,
     },
     {
       field: "actions",
       headerName: "Actions",
-      width: 200,
+      width: 150,
+      flex: 0.7,
+      minWidth: 150,
       renderCell: (params) => (
-        <Box>
-          <Button
-            variant="contained"
-            color="secondary"
-            size="small"
-            onClick={() => handleOpenDialog(params.row)}
-          >
-            Delete
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="small"
+          onClick={() => handleOpenDialog(params.row)}
+        >
+          Delete
+        </Button>
       ),
     },
   ];
@@ -178,6 +176,14 @@ const UserManagement = () => {
           paginationModel={paginationModel}
           onPaginationModelChange={setPaginationModel}
           disableSelectionOnClick
+          sx={{
+            '& .MuiDataGrid-cell': {
+              padding: '8px 12px',
+            },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: '#f5f5f5',
+            },
+          }}
         />
 
         <Dialog
