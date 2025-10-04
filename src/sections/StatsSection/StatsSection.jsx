@@ -35,7 +35,7 @@ export default function StatsSection() {
         <StatItem>
           <StatIcon as={ElectricCar} />
           <StatItemInner>
-            <StatNumber>30</StatNumber>
+            <StatNumber>20</StatNumber>
             <StatLabel>Unique Services</StatLabel>
           </StatItemInner>
         </StatItem>

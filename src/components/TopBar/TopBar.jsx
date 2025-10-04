@@ -39,8 +39,8 @@ export default function TopBar() {
                     <IconStyled>
                       <PhoneOutlined />
                     </IconStyled>
-                    <StyledLink to="tel:+359888888888">
-                      +63912 3456 789
+                    <StyledLink to="tel:+639329271164">
+                      +63932 927 1164
                     </StyledLink>
                     <IconStyled>
                       <EmailOutlined />
@@ -70,8 +70,8 @@ export default function TopBar() {
                   <IconStyled>
                     <PhoneOutlined />
                   </IconStyled>
-                  <StyledLink to="tel:+359888888888">
-                    +63912 3456 789
+                  <StyledLink to="tel:+639329271164">
+                    +63932 927 1164
                   </StyledLink>
                   <IconStyled>
                     <EmailOutlined />
