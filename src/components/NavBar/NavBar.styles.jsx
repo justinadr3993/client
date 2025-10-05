@@ -9,11 +9,9 @@ import {
 
 export const NavBarContainer = styled(AppBar)(() => ({
   backgroundColor: "transparent",
-  boxShadow: "none",
+  boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.1)",
   padding: "0.5rem 0",
   borderBottom: "1px solid #ccc",
-
-  boxShadow: "0 2px 4px 0 rgba(0, 0, 0, 0.1)",
 }));
 
 export const NavLink = styled(Button)(({ theme, variant }) => ({
