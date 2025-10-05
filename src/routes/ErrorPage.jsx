@@ -17,7 +17,7 @@ export default function ErrorPage() {
         </Typography>
         <Typography variant="body1" align="center">
           Sorry, the page you are looking for does not exist. You can always go
-          back to the homepage. yes?
+          back to the homepage.
         </Typography>
         <Button
           variant="contained"
