@@ -31,8 +31,8 @@ export default function DashboardListItems() {
 
   return (
     <>
-      {/* Only show Dashboard for admin and staff */}
-      {(userRole === "admin" || userRole === "staff") && (
+      {/* Only show Dashboard for admin */}
+      {userRole === "admin" && (
         <ListItemButton component={Link} to={getDashboardRoute()}>
           <ListItemIcon>
             <DashboardIcon />
@@ -48,7 +48,6 @@ export default function DashboardListItems() {
         <ListItemText primary="Appointments" />
       </ListItemButton>
       
-      {/* Reviews: Admin (all), Staff (all), User (own) */}
       {(userRole === "admin" || userRole === "staff" || userRole === "user") && (
         <ListItemButton component={Link} to="/reviews">
           <ListItemIcon>

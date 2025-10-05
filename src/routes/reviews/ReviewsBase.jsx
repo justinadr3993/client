@@ -154,9 +154,9 @@ const ReviewsBase = () => {
             variant="contained"
             color="primary"
             size="small"
-            onClick={() => user?.role === "admin" ? handleViewDetails(params.row) : navigate(`/reviews/edit/${params.row.id}`)}
+            onClick={() => (user?.role === "admin" || user?.role === "staff") ? handleViewDetails(params.row) : navigate(`/reviews/edit/${params.row.id}`)}
           >
-            {user?.role === "admin" ? "View" : "Edit"}
+            {(user?.role === "admin" || user?.role === "staff") ? "View" : "Edit"}
           </Button>
           <Button
             variant="contained"
@@ -190,8 +190,9 @@ const ReviewsBase = () => {
     );
   }
 
+  // Show all reviews for admin and staff, only user's reviews for regular users
   const filteredReviews =
-    user?.role === "admin"
+    (user?.role === "admin" || user?.role === "staff")
       ? reviewsData?.results || []
       : (reviewsData?.results || []).filter((review) => review.userId === user.id);
 
@@ -206,7 +207,7 @@ const ReviewsBase = () => {
         />
       )}
       <Typography variant="h4" gutterBottom>
-        {user?.role === "admin" ? "Manage All Reviews" : "My Reviews"}
+        {(user?.role === "admin" || user?.role === "staff") ? "Manage All Reviews" : "My Reviews"}
       </Typography>
       <Box sx={{ height: 650, width: "100%" }}>
         <Box
@@ -216,7 +217,7 @@ const ReviewsBase = () => {
             mb: 2,
           }}
         >
-          {user?.role !== "admin" && (
+          {user?.role === "user" && (
             <Button
               variant="contained"
               color="primary"
