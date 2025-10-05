@@ -72,12 +72,13 @@ export default function SignUp() {
     const { confirmPassword, ...userData } = formData;
     
     try {
+      setAlert({ type: "", message: "" }); // Clear previous alerts
       const result = await registerUser(userData).unwrap();
       
       if (result) {
         setAlert({
           type: "success",
-          message: "Registration successful! Verification email sent. Please check your inbox.",
+          message: result.message || "Registration successful! Verification email sent. Please check your inbox.",
         });
         
         // Redirect to login after 3 seconds
