@@ -16,11 +16,18 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Chip
 } from '@mui/material';
 import { 
   useGetStockAnalyticsQuery,
   useGetStockHistoryQuery,
+  useFetchStocksQuery,
 } from '../../services/api/stocksApi';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import { 
@@ -53,6 +60,10 @@ const StockAnalytics = () => {
   const [customStartDate, setCustomStartDate] = useState(dayjs().startOf('week'));
   const [customEndDate, setCustomEndDate] = useState(dayjs().endOf('week'));
   
+  // Modal state for line click
+  const [selectedLineData, setSelectedLineData] = useState(null);
+  const [openLineDetails, setOpenLineDetails] = useState(false);
+  
   const { 
     data: analytics, 
     isLoading: analyticsLoading 
@@ -63,15 +74,18 @@ const StockAnalytics = () => {
     isLoading: historyLoading 
   } = useGetStockHistoryQuery(timeRange);
 
+  const { 
+    data: stocksData,
+    isLoading: stocksLoading 
+  } = useFetchStocksQuery({ limit: 1000 });
+
   const handleTimeRangeChange = (event, newValue) => {
     setTimeRange(newValue);
   };
 
-  // Transform history data for the chart
   const prepareChartData = () => {
     if (!history) return [];
 
-    // Group by date and operation
     const groupedData = {};
     
     history.forEach(item => {
@@ -79,14 +93,32 @@ const StockAnalytics = () => {
         groupedData[item.date] = {
           date: item.date,
           restock: 0,
-          usage: 0
+          usage: 0,
+          restockDetails: [],
+          usageDetails: []
         };
       }
       
       if (item.operation === 'restock') {
         groupedData[item.date].restock += item.totalChange;
+        groupedData[item.date].restockDetails.push({
+          ...item,
+          change: item.totalChange,
+          stockId: item.stockId,
+          stockType: item.stockType,
+          stockCategory: item.stockCategory,
+          price: item.price
+        });
       } else if (item.operation === 'usage') {
         groupedData[item.date].usage += item.totalChange;
+        groupedData[item.date].usageDetails.push({
+          ...item,
+          change: item.totalChange,
+          stockId: item.stockId,
+          stockType: item.stockType,
+          stockCategory: item.stockCategory,
+          price: item.price
+        });
       }
     });
 
@@ -106,7 +138,42 @@ const StockAnalytics = () => {
     }
   };
 
-  if (analyticsLoading || historyLoading) {
+  // Handle line click
+  const handleLineClick = (data) => {
+    if (data && data.activePayload && data.activePayload[0]) {
+      const clickedData = data.activePayload[0].payload;
+      setSelectedLineData(clickedData);
+      setOpenLineDetails(true);
+    }
+  };
+
+  // Get stock details for the clicked date
+  const getStockDetails = () => {
+    if (!selectedLineData) return { restock: [], usage: [] };
+    
+    return {
+      restock: selectedLineData.restockDetails || [],
+      usage: selectedLineData.usageDetails || []
+    };
+  };
+
+  // Get stock name by ID
+  const getStockName = (stockId, stockType) => {
+    if (!stocksData?.results) return stockType || `Stock ID: ${stockId}`;
+    
+    const stock = stocksData.results.find(s => s._id === stockId);
+    return stock ? stock.type : stockType || `Stock ID: ${stockId}`;
+  };
+
+  // Get stock category by ID
+  const getStockCategory = (stockId, stockCategory) => {
+    if (!stocksData?.results) return stockCategory || 'Unknown';
+    
+    const stock = stocksData.results.find(s => s._id === stockId);
+    return stock ? stock.category : stockCategory || 'Unknown';
+  };
+
+  if (analyticsLoading || historyLoading || stocksLoading) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
@@ -253,6 +320,7 @@ const StockAnalytics = () => {
                 <LineChart
                   data={chartData}
                   margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  onClick={handleLineClick}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
@@ -289,6 +357,136 @@ const StockAnalytics = () => {
             </Paper>
           </Grid>
         </Grid>
+
+        {/* Line Details Modal */}
+        <Dialog
+          open={openLineDetails}
+          onClose={() => setOpenLineDetails(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            Stock Movement Details for {selectedLineData?.date}
+          </DialogTitle>
+          <DialogContent>
+            {selectedLineData && (
+              <>
+                <Typography variant="subtitle1" gutterBottom>
+                  Total Restocks: {selectedLineData.restock} items
+                </Typography>
+                <Typography variant="subtitle1" gutterBottom>
+                  Total Usage: {selectedLineData.usage} items
+                </Typography>
+                
+                {/* Restock Details */}
+                <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                  Restock Details
+                </Typography>
+                
+                {getStockDetails().restock.length > 0 ? (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Stock Item</TableCell>
+                          <TableCell>Category</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Price</TableCell>
+                          <TableCell align="right">Operation</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {getStockDetails().restock.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {getStockName(item.stockId, item.stockType)}
+                            </TableCell>
+                            <TableCell>
+                              {getStockCategory(item.stockId, item.stockCategory)}
+                            </TableCell>
+                            <TableCell align="right">{item.change}</TableCell>
+                            <TableCell align="right">
+                              {new Intl.NumberFormat('en-PH', {
+                                style: 'currency',
+                                currency: 'PHP'
+                              }).format(item.price || 0)}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip 
+                                label="Restock" 
+                                color="success" 
+                                size="small"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No restocks recorded for this date.
+                  </Typography>
+                )}
+
+                {/* Usage Details */}
+                <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>
+                  Usage Details
+                </Typography>
+                
+                {getStockDetails().usage.length > 0 ? (
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Stock Item</TableCell>
+                          <TableCell>Category</TableCell>
+                          <TableCell align="right">Quantity</TableCell>
+                          <TableCell align="right">Price</TableCell>
+                          <TableCell align="right">Operation</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {getStockDetails().usage.map((item, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              {getStockName(item.stockId, item.stockType)}
+                            </TableCell>
+                            <TableCell>
+                              {getStockCategory(item.stockId, item.stockCategory)}
+                            </TableCell>
+                            <TableCell align="right">{item.change}</TableCell>
+                            <TableCell align="right">
+                              {new Intl.NumberFormat('en-PH', {
+                                style: 'currency',
+                                currency: 'PHP'
+                              }).format(item.price || 0)}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Chip 
+                                label="Usage" 
+                                color="warning" 
+                                size="small"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                ) : (
+                  <Typography variant="body2" color="textSecondary">
+                    No usage recorded for this date.
+                  </Typography>
+                )}
+
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenLineDetails(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Low Stock Items */}
         <Grid container spacing={3}>
