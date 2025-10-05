@@ -314,7 +314,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
               setCurrentDay={setSelectedDay}
             />
           </Grid>
-           <Grid item xs={12}>
+          <Grid item xs={12}>
             <AppointmentCalendar
               appointments={allAppointments.results}
               onSlotSelect={handleSlotSelect}
@@ -418,7 +418,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Additional Notes/Instructions"
+                  label="Additional Notes (e.g. Plate No.)"
                   fullWidth
                   multiline
                   rows={4}

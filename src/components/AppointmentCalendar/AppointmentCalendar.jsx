@@ -53,7 +53,7 @@ export default function AppointmentCalendar({
   selectedDay,
   initialSlot,
   readOnly = false,
-  serviceCategory, // Destructure serviceCategory
+  serviceCategory,
 }) {
   const [selectedSlot, setSelectedSlot] = useState(initialSlot || null);
 
