@@ -25,7 +25,15 @@ import { Add, Remove } from "@mui/icons-material";
 
 const schema = yup.object().shape({
   type: yup.string().required("Item name is required"),
-  category: yup.string().required("Category is required"),
+  category: yup.string().oneOf([
+    "Engine Oil", 
+    "Tire Rotation", 
+    "Spark Plug", 
+    "Brake", 
+    "Battery", 
+    "Timing Belt", 
+    "Clutch"
+  ]).required("Category is required"),
   price: yup.number().required("Price is required").min(0),
   quantity: yup.number().min(0).nullable(),
 });
@@ -149,9 +157,13 @@ export default function StockForm({ stockToEdit }) {
                   label="Category" 
                   error={!!errors.category}
                 >
-                  <MenuItem value="Oil">Oil</MenuItem>
-                  <MenuItem value="Tire">Tire</MenuItem>
+                  <MenuItem value="Engine Oil">Engine Oil</MenuItem>
+                  <MenuItem value="Tire Rotation">Tire Rotation</MenuItem>
+                  <MenuItem value="Spark Plug">Spark Plug</MenuItem>
                   <MenuItem value="Brake">Brake</MenuItem>
+                  <MenuItem value="Battery">Battery</MenuItem>
+                  <MenuItem value="Timing Belt">Timing Belt</MenuItem>
+                  <MenuItem value="Clutch">Clutch</MenuItem>
                 </Select>
               )}
             />
