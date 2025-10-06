@@ -18,13 +18,21 @@ export default function UserDashboard() {
         User Dashboard
       </Typography>
       <Grid container spacing={4}>
-        <DashboardCard icon={HomeIcon} title="Home Page" to="/" />
+        <DashboardCard 
+          icon={HomeIcon} 
+          title="Home Page" 
+          to="/" 
+        />
         <DashboardCard
           icon={WatchLaterIcon}
           title="Appointments"
           to="/appointments"
         />
-        <DashboardCard icon={StarIcon} title="Reviews" to="/reviews" />
+        <DashboardCard 
+          icon={StarIcon} 
+          title="Reviews" 
+          to="/reviews"
+        />
         <DashboardCard
           icon={AccountCircleIcon}
           title="My Profile"

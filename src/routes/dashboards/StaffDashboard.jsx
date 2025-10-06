@@ -19,7 +19,11 @@ export default function StaffDashboard() {
         Staff Dashboard
       </Typography>
       <Grid container spacing={4}>
-        <DashboardCard icon={HomeIcon} title="Home Page" to="/" />
+        <DashboardCard 
+          icon={HomeIcon} 
+          title="Home Page" 
+          to="/" 
+        />
         <DashboardCard
           icon={WatchLaterIcon}
           title="Appointments"

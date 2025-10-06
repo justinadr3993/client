@@ -78,13 +78,11 @@ export default function StockForm({ stockToEdit }) {
       if (stockToEdit) {
         const quantityChange = data.quantity - stockToEdit.quantity;
         
-        // First update the stock with the new values EXCEPT quantity
         await updateStock({ 
           id: stockToEdit.id, 
           type: data.type,
           category: data.category,
           price: data.price
-          // Don't include quantity here - it will be handled by recordChange
         }).unwrap();
 
         // If quantity changed, record it in history
@@ -211,7 +209,7 @@ export default function StockForm({ stockToEdit }) {
                   inputProps={{ 
                     min: 0, 
                     step: 1,
-                    readOnly: true // Disable manual editing
+                    readOnly: true
                   }}
                   error={!!errors.quantity}
                   helperText={errors.quantity?.message}
