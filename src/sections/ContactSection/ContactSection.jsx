@@ -167,7 +167,7 @@ export default function ContactSection() {
               <List dense disablePadding>
                 <ListItem disableGutters>
                   <ListItemText
-                    secondary="7:00 - 18:30"
+                    secondary="7:00 - 18:00"
                   />
                 </ListItem>
               </List>

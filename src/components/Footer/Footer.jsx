@@ -18,7 +18,7 @@ export default function Footer() {
             <FooterTitle>OPENING HOURS</FooterTitle>
             <FooterSection>
               <Typography variant="body2">
-                7:00 - 18:30
+                7:00 - 18:00
               </Typography>
             </FooterSection>
           </Grid>
@@ -58,7 +58,7 @@ export default function Footer() {
             <Grid item xs={12} md={4}>
               <FooterIconContainer>
                 <Phone />
-                <FooterLink to="tel:+359888888888">+63912 3456 789</FooterLink>
+                <FooterLink to="tel:+359888888888">+63932 927 1164</FooterLink>
               </FooterIconContainer>
             </Grid>
             <Grid item xs={12} md={4}>
