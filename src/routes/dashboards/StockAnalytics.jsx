@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Box, 
   Typography, 
@@ -83,12 +83,32 @@ const StockAnalytics = () => {
     setTimeRange(newValue);
   };
 
-  const prepareChartData = () => {
+  // Filter history data based on selected date range
+  const filteredHistory = useMemo(() => {
     if (!history) return [];
+
+    return history.filter(item => {
+      const itemDate = dayjs(item.date);
+      
+      switch (timeRange) {
+        case 'week':
+          return itemDate.isSameOrAfter(customStartDate) && itemDate.isSameOrBefore(customEndDate);
+        case 'month':
+          return itemDate.isSame(customDate, 'month');
+        case 'year':
+          return itemDate.isSame(customDate, 'year');
+        default:
+          return true;
+      }
+    });
+  }, [history, timeRange, customDate, customStartDate, customEndDate]);
+
+  const prepareChartData = () => {
+    if (!filteredHistory || filteredHistory.length === 0) return [];
 
     const groupedData = {};
     
-    history.forEach(item => {
+    filteredHistory.forEach(item => {
       if (!groupedData[item.date]) {
         groupedData[item.date] = {
           date: item.date,
@@ -134,7 +154,7 @@ const StockAnalytics = () => {
       case 'year':
         return customDate.format('YYYY');
       default:
-        return '';
+        return 'All Time';
     }
   };
 
@@ -260,11 +280,9 @@ const StockAnalytics = () => {
                     currency: 'PHP'
                   }).format(analytics?.overall?.totalValue || 0)}
                 </Typography>
-                {timeRange !== 'all' && (
-                  <Typography variant="caption" color="textSecondary">
-                    {formatDateRange()}
-                  </Typography>
-                )}
+                <Typography variant="caption" color="textSecondary">
+                  Current Inventory
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -277,11 +295,9 @@ const StockAnalytics = () => {
                 <Typography variant="h4">
                   {analytics?.overall?.totalItems || 0}
                 </Typography>
-                {timeRange !== 'all' && (
-                  <Typography variant="caption" color="textSecondary">
-                    {formatDateRange()}
-                  </Typography>
-                )}
+                <Typography variant="caption" color="textSecondary">
+                  Current Inventory
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -294,11 +310,9 @@ const StockAnalytics = () => {
                 <Typography variant="h4" color="error">
                   {analytics?.overall?.lowStockItems || 0}
                 </Typography>
-                {timeRange !== 'all' && (
-                  <Typography variant="caption" color="textSecondary">
-                    {formatDateRange()}
-                  </Typography>
-                )}
+                <Typography variant="caption" color="textSecondary">
+                  Current Inventory
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
@@ -310,50 +324,70 @@ const StockAnalytics = () => {
             <Paper elevation={3} sx={{ p: 3 }}>
               <Typography variant="h6" gutterBottom>
                 Stock Movement Trends ({timeRange})
-                {timeRange !== 'all' && (
-                  <Typography variant="subtitle2" color="textSecondary">
-                    {formatDateRange()}
-                  </Typography>
-                )}
+                <Typography variant="subtitle2" color="textSecondary">
+                  {formatDateRange()}
+                </Typography>
+                <Typography variant="caption" color="textSecondary" display="block">
+                  Showing {chartData.length} days of data • Click on data points for details
+                </Typography>
               </Typography>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart
-                  data={chartData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                  onClick={handleLineClick}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date"
-                    tickFormatter={(date) => {
-                      if (timeRange === 'year') {
-                        return date.split('-')[1]; // Show just month for year view
-                      }
-                      return date.split('-').slice(1).join('-'); // Show day/month for week/month views
-                    }}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value, name) => [`${value} items`, name === 'restock' ? 'Restocks' : 'Usage']}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="restock"
-                    stroke="#00C49F"
-                    strokeWidth={2}
-                    activeDot={{ r: 8 }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="usage"
-                    stroke="#FF8042"
-                    strokeWidth={2}
-                    activeDot={{ r: 8 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              
+              {chartData.length === 0 ? (
+                <Box display="flex" justifyContent="center" alignItems="center" height={400}>
+                  <Typography variant="h6" color="textSecondary">
+                    No stock movement data available for the selected period
+                  </Typography>
+                </Box>
+              ) : (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                    onClick={handleLineClick}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date"
+                      tickFormatter={(date) => {
+                        if (timeRange === 'year') {
+                          return date.split('-')[1]; // Show just month for year view
+                        }
+                        return date.split('-').slice(1).join('-'); // Show day/month for week/month views
+                      }}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => {
+                        // Fix: Properly map the data keys to their labels
+                        if (name === 'restock') {
+                          return [`${value} items`, 'Restocks'];
+                        } else if (name === 'usage') {
+                          return [`${value} items`, 'Usage'];
+                        }
+                        return [`${value} items`, name];
+                      }}
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="restock"
+                      stroke="#00C49F"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
+                      name="Restocks"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="usage"
+                      stroke="#FF8042"
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }}
+                      name="Usage"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </Paper>
           </Grid>
         </Grid>
