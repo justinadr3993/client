@@ -32,10 +32,8 @@ import {
 } from "@mui/material";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import SearchIcon from '@mui/icons-material/Search';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
-import * as XLSX from 'xlsx';
 import {
   useFetchAllAppointmentsQuery,
   useFetchAppointmentsByUserQuery,
@@ -191,41 +189,6 @@ const AppointmentsBase = () => {
 
     return filtered;
   }, [appointmentsData, nameFilter, emailFilter, phoneFilter, statusFilter, bookedDateFilter, appointmentDateFilter, user?.role]);
-
-  const exportToExcel = () => {
-    const dataForExport = filteredHistoryAppointments.map(appointment => {
-      const serviceName = appointment.serviceType; 
-      const servicePrice = appointment.serviceType; 
-      
-      return {
-        ...((user?.role === "admin" || user?.role === "staff") && {
-          'Full Name': `${appointment.firstName} ${appointment.lastName}`,
-          'Email': appointment.email,
-          'Phone': appointment.contactNumber,
-        }),
-        'Service': serviceName,
-        'Price': servicePrice,
-        'Notes': appointment.additionalNotes || "N/A",
-        'Rating': appointment.review ? `${appointment.review.rating}/5` : 'N/A',
-        'Booked At': dayjs(appointment.bookedAt).format("MMM D, YYYY h:mm A"),
-        'Appointment At': dayjs(appointment.appointmentDateTime).format("MMM D, YYYY h:mm A"),
-        'Status': appointment.status
-      };
-    });
-
-    // Create a worksheet
-    const ws = XLSX.utils.json_to_sheet(dataForExport);
-    
-    // Create a workbook
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Appointment History");
-    
-    // Generate a filename with current date
-    const fileName = `AppointmentHistory_${dayjs().format('YYYY-MM-DD')}.xlsx`;
-    
-    // Export the file
-    XLSX.writeFile(wb, fileName);
-  };
 
   const rowCount = useMemo(() => {
     if (appointmentsData?.totalResults !== undefined) {
@@ -717,15 +680,6 @@ const AppointmentsBase = () => {
                 Clear Filters
               </Button>
             </Box>
-            <Button 
-              variant="contained" 
-              color="success"
-              startIcon={<FileDownloadIcon />}
-              onClick={exportToExcel}
-              disabled={filteredHistoryAppointments.length === 0}
-            >
-              Export to Excel
-            </Button>
           </Box>
 
           <TableContainer component={Paper}>

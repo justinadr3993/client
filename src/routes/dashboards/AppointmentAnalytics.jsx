@@ -772,8 +772,7 @@ const AppointmentAnalytics = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Metric</TableCell>
-                  <TableCell>Change (%)</TableCell>
-                  <TableCell>Insight</TableCell>
+                  <TableCell>Change</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -781,9 +780,8 @@ const AppointmentAnalytics = () => {
                   <TableRow key={index}>
                     <TableCell>{row.name}</TableCell>
                     <TableCell sx={{ color: row.change >= 0 ? 'success.main' : 'error.main' }}>
-                      {row.change.toFixed(1)}%
+                      {row.insight}
                     </TableCell>
-                    <TableCell>{row.insight}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
