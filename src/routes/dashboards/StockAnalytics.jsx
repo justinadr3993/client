@@ -109,9 +109,12 @@ const StockAnalytics = () => {
     const groupedData = {};
     
     filteredHistory.forEach(item => {
-      if (!groupedData[item.date]) {
-        groupedData[item.date] = {
-          date: item.date,
+      // Use the date from the API response directly
+      const dateKey = item.date;
+      
+      if (!groupedData[dateKey]) {
+        groupedData[dateKey] = {
+          date: dateKey,
           restock: 0,
           usage: 0,
           restockDetails: [],
@@ -120,8 +123,8 @@ const StockAnalytics = () => {
       }
       
       if (item.operation === 'restock') {
-        groupedData[item.date].restock += item.totalChange;
-        groupedData[item.date].restockDetails.push({
+        groupedData[dateKey].restock += item.totalChange;
+        groupedData[dateKey].restockDetails.push({
           ...item,
           change: item.totalChange,
           stockId: item.stockId,
@@ -130,8 +133,8 @@ const StockAnalytics = () => {
           price: item.price
         });
       } else if (item.operation === 'usage') {
-        groupedData[item.date].usage += item.totalChange;
-        groupedData[item.date].usageDetails.push({
+        groupedData[dateKey].usage += item.totalChange;
+        groupedData[dateKey].usageDetails.push({
           ...item,
           change: item.totalChange,
           stockId: item.stockId,
@@ -142,7 +145,19 @@ const StockAnalytics = () => {
       }
     });
 
-    return Object.values(groupedData).sort((a, b) => a.date.localeCompare(b.date));
+    // Convert to array and sort by date
+    const result = Object.values(groupedData).sort((a, b) => {
+      // Handle both YYYY-MM and YYYY-MM-DD formats
+      if (a.date.length === 7 && b.date.length === 7) {
+        // YYYY-MM format (year view)
+        return a.date.localeCompare(b.date);
+      } else {
+        // YYYY-MM-DD format (week/month view)
+        return a.date.localeCompare(b.date);
+      }
+    });
+
+    return result;
   };
 
   const formatDateRange = () => {
@@ -191,6 +206,24 @@ const StockAnalytics = () => {
     
     const stock = stocksData.results.find(s => s._id === stockId);
     return stock ? stock.category : stockCategory || 'Unknown';
+  };
+
+  // Format X-axis labels based on time range
+  const formatXAxisLabel = (date) => {
+    if (timeRange === 'year') {
+      // For year view, show month names
+      const [year, month] = date.split('-');
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return monthNames[parseInt(month) - 1];
+    } else {
+      // For week/month view, show day/month
+      const parts = date.split('-');
+      if (parts.length === 3) {
+        return `${parts[1]}/${parts[2]}`; // MM/DD format
+      }
+      return date;
+    }
   };
 
   if (analyticsLoading || historyLoading || stocksLoading) {
@@ -348,17 +381,11 @@ const StockAnalytics = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="date"
-                      tickFormatter={(date) => {
-                        if (timeRange === 'year') {
-                          return date.split('-')[1]; // Show just month for year view
-                        }
-                        return date.split('-').slice(1).join('-'); // Show day/month for week/month views
-                      }}
+                      tickFormatter={formatXAxisLabel}
                     />
                     <YAxis />
                     <Tooltip 
                       formatter={(value, name) => {
-                        // Fix: Properly map the data keys to their labels
                         if (name === 'restock') {
                           return [`${value} items`, 'Restocks'];
                         } else if (name === 'usage') {
@@ -366,7 +393,15 @@ const StockAnalytics = () => {
                         }
                         return [`${value} items`, name];
                       }}
-                      labelFormatter={(label) => `Date: ${label}`}
+                      labelFormatter={(label) => {
+                        if (timeRange === 'year') {
+                          const [year, month] = label.split('-');
+                          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                            'July', 'August', 'September', 'October', 'November', 'December'];
+                          return `Month: ${monthNames[parseInt(month) - 1]} ${year}`;
+                        }
+                        return `Date: ${label}`;
+                      }}
                     />
                     <Legend />
                     <Line
