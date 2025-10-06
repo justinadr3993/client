@@ -168,25 +168,43 @@ const prepareChartData = (timeRange, customDate, customStartDate, customEndDate,
     case 'month':
       startDate = customDate.startOf('month');
       endDate = customDate.endOf('month');
-      // Group by week for month view
-      const weeksInMonth = Math.ceil(endDate.diff(startDate, 'week') + 1);
-      for (let week = 0; week < weeksInMonth; week++) {
-        const weekStart = startDate.add(week, 'week');
-        const weekEnd = week === weeksInMonth - 1 ? endDate : weekStart.endOf('week');
+      
+      // Calculate weeks in month properly
+      const firstDay = startDate.startOf('month');
+      const lastDay = endDate.endOf('month');
+      
+      let weekStart = firstDay.startOf('week'); // Start from Sunday of the week containing the 1st
+      const weeks = [];
+      
+      while (weekStart.isSameOrBefore(lastDay)) {
+        const weekEnd = weekStart.endOf('week').isAfter(lastDay) ? lastDay : weekStart.endOf('week');
         
+        // Only include weeks that have at least one day in the current month
+        if (weekStart.isSameOrBefore(lastDay) && weekEnd.isSameOrAfter(firstDay)) {
+          weeks.push({
+            start: weekStart,
+            end: weekEnd
+          });
+        }
+        
+        weekStart = weekStart.add(1, 'week').startOf('week');
+      }
+      
+      // Create data for each week
+      weeks.forEach((week, index) => {
         const weekAppointments = appointments.filter(appointment => {
           const appointmentDate = dayjs(appointment.appointmentDateTime);
-          return appointmentDate.isSameOrAfter(weekStart) && appointmentDate.isSameOrBefore(weekEnd);
+          return appointmentDate.isSameOrAfter(week.start) && appointmentDate.isSameOrBefore(week.end);
         });
         
         data.push({
-          name: `Week ${week + 1}`,
+          name: `Week ${index + 1}`,
           Appointments: weekAppointments.length,
-          appointments: weekAppointments, // Store appointments for this week
-          start: weekStart,
-          end: weekEnd
+          appointments: weekAppointments,
+          start: week.start,
+          end: week.end
         });
-      }
+      });
       break;
     case 'year':
       startDate = customDate.startOf('year');
@@ -550,7 +568,16 @@ const AppointmentAnalytics = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
-              <Tooltip />
+              <Tooltip 
+                formatter={(value, name) => [`${value} appointments`, name]}
+                labelFormatter={(label, payload) => {
+                  if (payload && payload[0] && payload[0].payload) {
+                    const data = payload[0].payload;
+                    return `Period: ${data.start.format('MMM D, YYYY')} - ${data.end.format('MMM D, YYYY')}`;
+                  }
+                  return label;
+                }}
+              />
               <Legend />
               <Bar 
                 dataKey="Appointments" 
@@ -578,7 +605,7 @@ const AppointmentAnalytics = () => {
                   Total Appointments: {selectedBarData.Appointments}
                 </Typography>
                 <Typography variant="subtitle1" gutterBottom>
-                  Time Period: {selectedBarData.start.format('MMM D, YYYY h:mm A')} - {selectedBarData.end.format('MMM D, YYYY h:mm A')}
+                  Time Period: {selectedBarData.start.format('MMM D, YYYY')} - {selectedBarData.end.format('MMM D, YYYY')}
                 </Typography>
                 
                 <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
