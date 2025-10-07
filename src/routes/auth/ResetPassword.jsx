@@ -26,6 +26,8 @@ export default function ResetPassword() {
     const query = new URLSearchParams(location.search);
     const token = query.get("token");
     
+    console.log("Reset token from URL:", token); // Debug log
+    
     if (!token) {
       setAlert({
         type: "error",
@@ -35,14 +37,13 @@ export default function ResetPassword() {
     }
     
     setToken(token);
-    console.log("Reset token extracted:", token); // Debug log
   }, [location.search]);
 
   const onSubmit = async (data) => {
     if (!token) {
       setAlert({
         type: "error",
-        message: "Invalid reset token",
+        message: "Invalid reset token. Please request a new password reset link.",
       });
       return;
     }
@@ -59,15 +60,27 @@ export default function ResetPassword() {
         message: "Password has been reset successfully. You can now sign in with your new password.",
       });
       
+      // Redirect to login after success
       setTimeout(() => {
         navigate("/login");
       }, 3000);
       
     } catch (error) {
       console.error("Reset password error:", error);
+      
+      let errorMessage = "Failed to reset password. The link may have expired or is invalid.";
+      
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.status === 401) {
+        errorMessage = "The reset link has expired. Please request a new one.";
+      } else if (error.status === 400) {
+        errorMessage = "Invalid reset token. Please request a new password reset link.";
+      }
+      
       setAlert({
         type: "error",
-        message: error.data?.message || "Failed to reset password. The link may have expired or is invalid.",
+        message: errorMessage,
       });
     }
   };
@@ -88,6 +101,9 @@ export default function ResetPassword() {
         </Avatar>
         <Typography component="h1" variant="h5" gutterBottom>
           Reset Password
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2, textAlign: 'center' }}>
+          Enter your new password below.
         </Typography>
         
         {alert && (
@@ -111,6 +127,10 @@ export default function ResetPassword() {
                 minLength: {
                   value: 8,
                   message: "Password must be at least 8 characters"
+                },
+                pattern: {
+                  value: /^(?=.*[a-zA-Z])(?=.*\d)/,
+                  message: "Password must contain at least one letter and one number"
                 }
               }}
               render={({ field }) => (
@@ -178,17 +198,30 @@ export default function ResetPassword() {
         ) : null}
         
         {isSuccess && (
-          <Link to="/login" style={{ textDecoration: 'none', width: '100%' }}>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              sx={{ mt: 2 }}
-            >
-              Sign In
+          <Box sx={{ width: '100%', textAlign: 'center' }}>
+            <Typography variant="body2" color="success.main" sx={{ mb: 2 }}>
+              Redirecting to login page...
+            </Typography>
+            <Link to="/login" style={{ textDecoration: 'none', width: '100%' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                sx={{ mt: 2 }}
+              >
+                Go to Sign In
+              </Button>
+            </Link>
+          </Box>
+        )}
+        
+        <Box sx={{ mt: 2, width: '100%', textAlign: 'center' }}>
+          <Link to="/login" style={{ textDecoration: 'none' }}>
+            <Button variant="text" color="primary">
+              Back to Sign In
             </Button>
           </Link>
-        )}
+        </Box>
       </Box>
     </Container>
   );

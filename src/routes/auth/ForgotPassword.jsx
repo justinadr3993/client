@@ -11,6 +11,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { Link } from "react-router-dom";
 import { useForgotPasswordMutation } from "../../services/api/authApi";
 
 export default function ForgotPassword() {
@@ -20,15 +21,32 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data) => {
     try {
+      setAlert(null); // Clear previous alerts
       await forgotPassword(data.email).unwrap();
+      
       setAlert({
         type: "success",
-        message: "Password reset link sent to your email. Please check your inbox (and spam folder).",
+        message: "Password reset link sent to your email. Please check your inbox (and spam folder). The link will expire in 30 minutes.",
       });
+      
     } catch (error) {
+      console.error("Forgot password error:", error);
+      
+      let errorMessage = "Failed to send reset link. Please try again.";
+      
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.status === 404) {
+        errorMessage = "No account found with this email address.";
+      } else if (error.status === 429) {
+        errorMessage = "Too many requests. Please try again later.";
+      } else if (error.status >= 500) {
+        errorMessage = "Server error. Please try again later.";
+      }
+      
       setAlert({
         type: "error",
-        message: error.data?.message || "Failed to send reset link. Please try again.",
+        message: errorMessage,
       });
     }
   };
@@ -85,6 +103,8 @@ export default function ForgotPassword() {
                 error={!!errors.email}
                 helperText={errors.email?.message}
                 disabled={isLoading}
+                autoComplete="email"
+                autoFocus
               />
             )}
           />
@@ -103,6 +123,23 @@ export default function ForgotPassword() {
             )}
           </Button>
         </form>
+
+        <Box sx={{ mt: 2, width: '100%', textAlign: 'center' }}>
+          <Link to="/login" style={{ textDecoration: 'none' }}>
+            <Button variant="text" color="primary" fullWidth>
+              Back to Sign In
+            </Button>
+          </Link>
+        </Box>
+
+        <Box sx={{ mt: 1, width: '100%', textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Don't have an account?{" "}
+            <Link to="/register" style={{ textDecoration: 'none', color: 'primary.main' }}>
+              Sign up
+            </Link>
+          </Typography>
+        </Box>
       </Box>
     </Container>
   );
