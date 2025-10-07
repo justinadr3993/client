@@ -25,13 +25,17 @@ export default function ResetPassword() {
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const token = query.get("token");
+    
     if (!token) {
       setAlert({
         type: "error",
         message: "Invalid or missing reset token. Please request a new password reset link.",
       });
+      return;
     }
+    
     setToken(token);
+    console.log("Reset token extracted:", token); // Debug log
   }, [location.search]);
 
   const onSubmit = async (data) => {
@@ -44,7 +48,12 @@ export default function ResetPassword() {
     }
 
     try {
-      await resetPassword({ token, password: data.password }).unwrap();
+      console.log("Submitting reset with token:", token); // Debug log
+      await resetPassword({ 
+        token: token, 
+        password: data.password 
+      }).unwrap();
+      
       setAlert({
         type: "success",
         message: "Password has been reset successfully. You can now sign in with your new password.",
@@ -56,9 +65,10 @@ export default function ResetPassword() {
       }, 3000);
       
     } catch (error) {
+      console.error("Reset password error:", error);
       setAlert({
         type: "error",
-        message: error.data?.message || "Failed to reset password. The link may have expired.",
+        message: error.data?.message || "Failed to reset password. The link may have expired or is invalid.",
       });
     }
   };
@@ -91,7 +101,7 @@ export default function ResetPassword() {
           </Alert>
         )}
         
-        {!isSuccess && token && (
+        {!isSuccess && token ? (
           <form onSubmit={handleSubmit(onSubmit)} style={{ width: '100%' }}>
             <Controller
               name="password"
@@ -155,7 +165,18 @@ export default function ResetPassword() {
               )}
             </Button>
           </form>
-        )}
+        ) : !token && !isSuccess ? (
+          <Box sx={{ textAlign: 'center', width: '100%' }}>
+            <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+              No valid reset token found.
+            </Typography>
+            <Link to="/forgot-password" style={{ textDecoration: 'none' }}>
+              <Button variant="contained" color="primary">
+                Request New Reset Link
+              </Button>
+            </Link>
+          </Box>
+        ) : null}
         
         {isSuccess && (
           <Link to="/login" style={{ textDecoration: 'none', width: '100%' }}>
