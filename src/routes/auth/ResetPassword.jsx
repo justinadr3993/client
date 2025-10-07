@@ -48,7 +48,7 @@ export default function ResetPassword() {
     }
 
     try {
-      console.log("Submitting reset with token:", token); // Debug log
+      console.log("Submitting reset with token:", token);
       await resetPassword({ 
         token: token, 
         password: data.password 
@@ -59,7 +59,6 @@ export default function ResetPassword() {
         message: "Password has been reset successfully. You can now sign in with your new password.",
       });
       
-      // Redirect to login after 3 seconds
       setTimeout(() => {
         navigate("/login");
       }, 3000);
