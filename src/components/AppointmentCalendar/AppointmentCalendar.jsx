@@ -14,25 +14,40 @@ AppointmentCalendar.propTypes = {
 };
 
 const slots = [
-  "7:00 - 8:00",
-  "8:00 - 9:00",
-  "9:00 - 10:00",
-  "10:00 - 11:00",
-  "11:00 - 12:00",
-  "12:00 - 13:00",
-  "13:00 - 14:00",
-  "14:00 - 15:00",
-  "15:00 - 16:00",
-  "16:00 - 17:00",
-  "17:00 - 18:00"
+  "7:00 AM - 8:00 AM",
+  "8:00 AM - 9:00 AM", 
+  "9:00 AM - 10:00 AM",
+  "10:00 AM - 11:00 AM",
+  "11:00 AM - 12:00 PM",
+  "12:00 PM - 1:00 PM",
+  "1:00 PM - 2:00 PM",
+  "2:00 PM - 3:00 PM",
+  "3:00 PM - 4:00 PM",
+  "4:00 PM - 5:00 PM",
+  "5:00 PM - 6:00 PM"
 ];
+
+const parseTimeFromAMPM = (timeStr) => {
+  const [time, period] = timeStr.split(' ');
+  let [hours, minutes] = time.split(':').map(Number);
+  
+  if (period === 'PM' && hours !== 12) {
+    hours += 12;
+  } else if (period === 'AM' && hours === 12) {
+    hours = 0;
+  }
+  
+  return { hours, minutes };
+};
 
 const isSlotBooked = (time, appointments, selectedDay, serviceCategory) => {
   const [startTime] = time.split(" - ");
+  const { hours, minutes } = parseTimeFromAMPM(startTime);
+  
   return appointments.some(
     (appt) =>
       dayjs(appt.appointmentDateTime).isSame(
-        dayjs(selectedDay).hour(startTime.split(":")[0]).minute(startTime.split(":")[1]),
+        dayjs(selectedDay).hour(hours).minute(minutes),
         "minute"
       ) &&
       appt.status !== "Cancelled" &&
@@ -42,12 +57,10 @@ const isSlotBooked = (time, appointments, selectedDay, serviceCategory) => {
 
 const isSlotInPast = (time, selectedDay) => {
   const [startTime] = time.split(" - ");
-  const slotDateTime = dayjs(selectedDay)
-    .hour(startTime.split(":")[0])
-    .minute(startTime.split(":")[1]);
+  const { hours, minutes } = parseTimeFromAMPM(startTime);
+  const slotDateTime = dayjs(selectedDay).hour(hours).minute(minutes);
   return slotDateTime.isBefore(dayjs());
 };
-
 
 export default function AppointmentCalendar({
   appointments,
@@ -86,10 +99,12 @@ export default function AppointmentCalendar({
     ) {
       setSelectedSlot(time);
       const [startTime] = time.split(" - ");
+      const { hours, minutes } = parseTimeFromAMPM(startTime);
+      
       onSlotSelect(
         dayjs(selectedDay)
-          .hour(startTime.split(":")[0])
-          .minute(startTime.split(":")[1])
+          .hour(hours)
+          .minute(minutes)
           .toISOString()
       );
     }
@@ -100,9 +115,9 @@ export default function AppointmentCalendar({
       return "Booked";
     }
     if (isSlotInPast(time, selectedDay)) {
-      return "Past Slot";
+      return "Past";
     }
-    return "Open Slot";
+    return "Available";
   };
 
   return (
@@ -123,11 +138,26 @@ export default function AppointmentCalendar({
                 isSlotBooked(time, appointments, selectedDay, serviceCategory) ||
                 isSlotInPast(time, selectedDay)
               }
+              sx={{ 
+                padding: '5px 9px',
+                minHeight: 'auto'
+              }}
             >
-              <Typography mr={1} variant="h6">
+              <Typography 
+                mr={0.5} 
+                variant="body2" 
+                sx={{ fontSize: '0.9rem' }} 
+                fontWeight="medium"
+              >
                 {time}
               </Typography>
-              <Typography variant="body2">{getSlotStatus(time)}</Typography>
+              <Typography 
+                variant="caption" 
+                sx={{ fontSize: '0.9rem' }} 
+                color="text.secondary"
+              >
+                {getSlotStatus(time)}
+              </Typography>
             </Button>
           </StyledSlot>
         </Grid>

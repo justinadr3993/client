@@ -42,6 +42,7 @@ import {
   useUpdateAppointmentMutation,
 } from "../../services/api/appointmentsApi";
 import { useFetchServiceByIdQuery } from "../../services/api/servicesApi";
+import { useFetchServiceCategoryByIdQuery } from "../../services/api/serviceCategoriesApi";
 import FadeAlert from "../../components/FadeAlert/FadeAlert";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { useSelector } from "react-redux";
@@ -283,25 +284,6 @@ const AppointmentsBase = () => {
     setAlert(null);
   };
 
-  const handleDelete = async () => {
-    if (selectedAppointment) {
-      try {
-        await deleteAppointment(selectedAppointment.id).unwrap();
-        setOpenDialog(false);
-        refetch();
-        setAlert({
-          message: "Appointment deleted successfully!",
-          severity: "success",
-        });
-      } catch (error) {
-        setAlert({
-          message: `Error deleting appointment: ${error.message}`,
-          severity: "error",
-        });
-      }
-    }
-  };
-
   const handleCancel = async () => {
     if (selectedAppointment) {
       try {
@@ -329,17 +311,26 @@ const AppointmentsBase = () => {
       {
         field: "fullName",
         headerName: "Full Name",
-        width: 200,
+        width: 180,
         renderCell: (params) => `${params.row.firstName} ${params.row.lastName}`,
       },
     ] : []),
     {
       field: "serviceType",
       headerName: "Service",
-      width: 200,
+      width: 180,
       renderCell: (params) => {
         const { data: service } = useFetchServiceByIdQuery(params.row.serviceType);
         return service ? service.title : "Loading...";
+      },
+    },
+    {
+      field: "serviceCategory",
+      headerName: "Category",
+      width: 140,
+      renderCell: (params) => {
+        const { data: category } = useFetchServiceCategoryByIdQuery(params.row.serviceCategory);
+        return category ? category.name : "Loading...";
       },
     },
     {
@@ -427,12 +418,6 @@ const AppointmentsBase = () => {
               <MenuItem key="no-arrival" onClick={() => handleStatusChange("No Arrival")}>
                 Mark as No Arrival
               </MenuItem>,
-              <MenuItem key="delete" onClick={() => {
-                handleMenuClose();
-                handleOpenDialog(params.row);
-              }}>
-                Delete Appointment
-              </MenuItem>
             ]}
             {user?.role === "user" && (
               <MenuItem key="user-cancel" onClick={() => {
@@ -518,7 +503,7 @@ const AppointmentsBase = () => {
             disableSelectionOnClick
           />
           
-          {/* Delete/Cancel Confirmation Dialog */}
+          {/* Cancel Confirmation Dialog */}
           <Dialog
             open={openDialog}
             onClose={handleCloseDialog}
@@ -526,27 +511,23 @@ const AppointmentsBase = () => {
             aria-describedby="alert-dialog-description"
           >
             <DialogTitle id="alert-dialog-title">
-              {(user?.role === "admin" || user?.role === "staff")
-                ? "Delete Appointment"
-                : "Cancel Appointment"}
+              Cancel Appointment
             </DialogTitle>
             <DialogContent>
               <DialogContentText id="alert-dialog-description">
-                {(user?.role === "admin" || user?.role === "staff")
-                  ? `Are you sure you want to delete the appointment for ${selectedAppointment?.firstName} ${selectedAppointment?.lastName}?`
-                  : `Are you sure you want to cancel the appointment for ${selectedAppointment?.firstName} ${selectedAppointment?.lastName}?`}
+                Are you sure you want to cancel the appointment for {selectedAppointment?.firstName} {selectedAppointment?.lastName}?
               </DialogContentText>
             </DialogContent>
             <DialogActions>
               <Button onClick={handleCloseDialog} color="primary">
-                Cancel
+                No
               </Button>
               <Button
-                onClick={(user?.role === "admin" || user?.role === "staff") ? handleDelete : handleCancel}
+                onClick={handleCancel}
                 color="secondary"
                 autoFocus
               >
-                Confirm
+                Yes, Cancel
               </Button>
             </DialogActions>
           </Dialog>
@@ -694,6 +675,7 @@ const AppointmentsBase = () => {
                     </>
                   )}
                   <TableCell sx={{ fontSize: '0.75rem' }}>Service</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Category</TableCell>
                   <TableCell sx={{ fontSize: '0.75rem' }}>Price</TableCell>
                   <TableCell sx={{ fontSize: '0.75rem' }}>Notes</TableCell>
                   <TableCell sx={{ fontSize: '0.75rem' }}>Rating</TableCell>
@@ -716,6 +698,9 @@ const AppointmentsBase = () => {
                     )}
                     <TableCell sx={{ fontSize: '0.75rem' }}>
                       <ServiceName serviceId={appointment.serviceType} />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem' }}>
+                      <ServiceCategoryName categoryId={appointment.serviceCategory} />
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.75rem' }}>
                       <ServicePrice serviceId={appointment.serviceType} />
@@ -745,7 +730,7 @@ const AppointmentsBase = () => {
                 <TableRow>
                   <TablePagination
                     rowsPerPageOptions={[15, 30, 50]}
-                    colSpan={(user?.role === "admin" || user?.role === "staff") ? 10 : 7}
+                    colSpan={(user?.role === "admin" || user?.role === "staff") ? 11 : 8}
                     count={filteredHistoryAppointments.length}
                     rowsPerPage={historyRowsPerPage}
                     page={historyPage}
@@ -770,6 +755,11 @@ const ServiceName = ({ serviceId }) => {
 const ServicePrice = ({ serviceId }) => {
   const { data: service } = useFetchServiceByIdQuery(serviceId);
   return service ? `₱${service.price}` : "Loading...";
+};
+
+const ServiceCategoryName = ({ categoryId }) => {
+  const { data: category } = useFetchServiceCategoryByIdQuery(categoryId);
+  return category ? category.name : "Loading...";
 };
 
 export default AppointmentsBase;
