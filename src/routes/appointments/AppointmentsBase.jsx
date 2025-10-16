@@ -1,60 +1,27 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Box,
-  Button,
   Typography,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  useMediaQuery,
-  Badge,
-  MenuItem,
-  Select,
-  FormControl,
-  IconButton,
-  Menu,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Chip,
   Tabs,
   Tab,
-  TextField,
-  InputAdornment,
-  TableFooter,
-  TablePagination,
 } from "@mui/material";
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import SearchIcon from '@mui/icons-material/Search';
-import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   useFetchAllAppointmentsQuery,
   useFetchAppointmentsByUserQuery,
   useFetchAppointmentsForStaffQuery,
-  useDeleteAppointmentMutation,
-  useUpdateAppointmentMutation,
 } from "../../services/api/appointmentsApi";
-import { useFetchServiceByIdQuery } from "../../services/api/servicesApi";
-import { useFetchServiceCategoryByIdQuery } from "../../services/api/serviceCategoriesApi";
 import FadeAlert from "../../components/FadeAlert/FadeAlert";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import { useSelector } from "react-redux";
-import dayjs from "dayjs";
-import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import CurrentAppointments from "./CurrentAppointments";
+import AppointmentHistory from "./AppointmentHistory";
 
 const AppointmentsBase = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useSelector((state) => state.auth.user);
   const userId = user?.id?.toString();
-  const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down("md"));
   const [activeTab, setActiveTab] = useState(0);
 
   const [paginationModel, setPaginationModel] = useState({
@@ -62,34 +29,8 @@ const AppointmentsBase = () => {
     pageSize: 100,
   });
   
-  const [historyPage, setHistoryPage] = useState(0);
-  const [historyRowsPerPage, setHistoryRowsPerPage] = useState(50);
-
   const rowCountRef = useRef(0);
   const [alert, setAlert] = useState(location.state?.alert || null);
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openDetailsModal, setOpenDetailsModal] = useState(false);
-  const [statusChangeDialog, setStatusChangeDialog] = useState({
-    open: false,
-    appointmentId: null,
-    newStatus: null,
-  });
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [currentAppointment, setCurrentAppointment] = useState(null);
-
-  // Filter states
-  const [nameFilter, setNameFilter] = useState("");
-  const [emailFilter, setEmailFilter] = useState("");
-  const [phoneFilter, setPhoneFilter] = useState("");
-  const [serviceFilter, setServiceFilter] = useState("");
-  const [priceFilter, setPriceFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [bookedDateFilter, setBookedDateFilter] = useState("");
-  const [appointmentDateFilter, setAppointmentDateFilter] = useState("");
-
-  const [deleteAppointment] = useDeleteAppointmentMutation();
-  const [updateAppointment] = useUpdateAppointmentMutation();
 
   useEffect(() => {
     if (location.state?.alert) {
@@ -137,60 +78,6 @@ const AppointmentsBase = () => {
     refetch,
   } = appointmentsQuery;
 
-  // Filter for current appointments (Upcoming and Rescheduled)
-  const currentAppointments = useMemo(
-    () =>
-      (appointmentsData?.results || [])
-        .filter(appt => ["Upcoming", "Rescheduled"].includes(appt.status))
-        .sort((a, b) => new Date(a.appointmentDateTime) - new Date(b.appointmentDateTime)),
-    [appointmentsData]
-  );
-
-  // Filter for history appointments (Completed, Cancelled, No Arrival)
-  const filteredHistoryAppointments = useMemo(() => {
-    if (!appointmentsData?.results) return [];
-    
-    let filtered = appointmentsData.results
-      .filter(appt => ["Completed", "Cancelled", "No Arrival"].includes(appt.status))
-      .sort((a, b) => new Date(b.appointmentDateTime) - new Date(a.appointmentDateTime));
-
-    if (user?.role === "admin" || user?.role === "staff") {
-      if (nameFilter) {
-        filtered = filtered.filter(appt => 
-          `${appt.firstName} ${appt.lastName}`.toLowerCase().includes(nameFilter.toLowerCase())
-        );
-      }
-      if (emailFilter) {
-        filtered = filtered.filter(appt => 
-          appt.email.toLowerCase().includes(emailFilter.toLowerCase())
-        );
-      }
-      if (phoneFilter) {
-        filtered = filtered.filter(appt => 
-          appt.contactNumber.includes(phoneFilter)
-        );
-      }
-    }
-
-    if (statusFilter) {
-      filtered = filtered.filter(appt => 
-        appt.status === statusFilter
-      );
-    }
-    if (bookedDateFilter) {
-      filtered = filtered.filter(appt => 
-        dayjs(appt.createdAt).format("YYYY-MM-DD") === bookedDateFilter
-      );
-    }
-    if (appointmentDateFilter) {
-      filtered = filtered.filter(appt => 
-        dayjs(appt.appointmentDateTime).format("YYYY-MM-DD") === appointmentDateFilter
-      );
-    }
-
-    return filtered;
-  }, [appointmentsData, nameFilter, emailFilter, phoneFilter, statusFilter, bookedDateFilter, appointmentDateFilter, user?.role]);
-
   const rowCount = useMemo(() => {
     if (appointmentsData?.totalResults !== undefined) {
       rowCountRef.current = appointmentsData.totalResults;
@@ -198,240 +85,13 @@ const AppointmentsBase = () => {
     return rowCountRef.current;
   }, [appointmentsData?.totalResults]);
 
-  const handleHistoryPageChange = (event, newPage) => {
-    setHistoryPage(newPage);
-  };
-
-  const handleHistoryRowsPerPageChange = (event) => {
-    setHistoryRowsPerPage(parseInt(event.target.value, 10));
-    setHistoryPage(0);
-  };
-
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
-  };
-
-  const handleMenuOpen = (event, appointment) => {
-    setAnchorEl(event.currentTarget);
-    setCurrentAppointment(appointment);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setCurrentAppointment(null);
-  };
-
-  const handleStatusChange = (newStatus) => {
-    if (currentAppointment) {
-      if (['Completed', 'Cancelled', 'No Arrival'].includes(currentAppointment.status)) {
-        setAlert({
-          message: `Cannot change status of an appointment that is already ${currentAppointment.status}`,
-          severity: "error",
-        });
-        handleMenuClose();
-        return;
-      }
-
-      setStatusChangeDialog({
-        open: true,
-        appointmentId: currentAppointment.id,
-        newStatus,
-      });
-      handleMenuClose();
-    }
-  };
-
-  const confirmStatusChange = async () => {
-    try {
-      await updateAppointment({
-        id: statusChangeDialog.appointmentId,
-        status: statusChangeDialog.newStatus,
-      }).unwrap();
-      refetch();
-      setStatusChangeDialog({ open: false, appointmentId: null, newStatus: null });
-    } catch (error) {
-      setAlert({
-        message: `Error updating status: ${error.message}`,
-        severity: "error",
-      });
-    }
-  };
-
-  const cancelStatusChange = () => {
-    setStatusChangeDialog({ open: false, appointmentId: null, newStatus: null });
-  };
-
-  const handleEdit = (id) => {
-    navigate(`/appointments/edit/${id}`);
-  };
-
-  const handleViewDetails = (appointment) => {
-    setSelectedAppointment(appointment);
-    setOpenDetailsModal(true);
-  };
-
-  const handleOpenDialog = (appointment) => {
-    setSelectedAppointment(appointment);
-    setOpenDialog(true);
-  };
-
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    setSelectedAppointment(null);
   };
 
   const handleAlertClose = () => {
     setAlert(null);
   };
-
-  const handleCancel = async () => {
-    if (selectedAppointment) {
-      try {
-        await updateAppointment({
-          id: selectedAppointment.id,
-          status: "Cancelled",
-        }).unwrap();
-        setOpenDialog(false);
-        refetch();
-        setAlert({
-          message: "Appointment cancelled successfully!",
-          severity: "success",
-        });
-      } catch (error) {
-        setAlert({
-          message: `Error cancelling appointment: ${error.message}`,
-          severity: "error",
-        });
-      }
-    }
-  };
-
-  const columns = [
-    ...((user?.role === "admin" || user?.role === "staff") ? [
-      {
-        field: "fullName",
-        headerName: "Full Name",
-        width: 180,
-        renderCell: (params) => `${params.row.firstName} ${params.row.lastName}`,
-      },
-    ] : []),
-    {
-      field: "serviceType",
-      headerName: "Service",
-      width: 180,
-      renderCell: (params) => {
-        const { data: service } = useFetchServiceByIdQuery(params.row.serviceType);
-        return service ? service.title : "Loading...";
-      },
-    },
-    {
-      field: "serviceCategory",
-      headerName: "Category",
-      width: 140,
-      renderCell: (params) => {
-        const { data: category } = useFetchServiceCategoryByIdQuery(params.row.serviceCategory);
-        return category ? category.name : "Loading...";
-      },
-    },
-    {
-      field: "price",
-      headerName: "Price",
-      width: 100,
-      renderCell: (params) => {
-        const { data: service } = useFetchServiceByIdQuery(params.row.serviceType);
-        return service ? `₱${service.price}` : "Loading...";
-      },
-    },
-    {
-      field: "appointmentDateTime",
-      headerName: "Date & Time",
-      width: 150,
-      renderCell: (params) =>
-        dayjs(params.row.appointmentDateTime).format("DD/MM/YYYY HH:mm"),
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      renderCell: (params) => (
-        <Badge
-          badgeContent={params.row.status}
-          color={
-            params.row.status === "Upcoming" ? "primary" : 
-            params.row.status === "Rescheduled" ? "warning" : "secondary"
-          }
-          sx={{ padding: "5px 20px" }}
-        />
-      ),
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 200,
-      renderCell: (params) => (
-        <Box display="flex" alignItems="center">
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => handleViewDetails(params.row)}
-            sx={{ mr: 1 }}
-          >
-            View
-          </Button>
-          
-          {(user?.role === "admin" || user?.role === "staff") && (
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={() => handleEdit(params.row.id)}
-              sx={{ mr: 1 }}
-            >
-              Edit
-            </Button>
-          )}
-          
-          <IconButton
-            aria-label="more"
-            aria-controls="long-menu"
-            aria-haspopup="true"
-            onClick={(e) => handleMenuOpen(e, params.row)}
-          >
-            <MoreVertIcon />
-          </IconButton>
-          
-          <Menu
-            id="long-menu"
-            anchorEl={anchorEl}
-            keepMounted
-            open={Boolean(anchorEl && currentAppointment?.id === params.row.id)}
-            onClose={handleMenuClose}
-          >
-            {(user?.role === "admin" || user?.role === "staff") && [
-              <MenuItem key="complete" onClick={() => handleStatusChange("Completed")}>
-                Mark as Completed
-              </MenuItem>,
-              <MenuItem key="cancel" onClick={() => handleStatusChange("Cancelled")}>
-                Mark as Cancelled
-              </MenuItem>,
-              <MenuItem key="no-arrival" onClick={() => handleStatusChange("No Arrival")}>
-                Mark as No Arrival
-              </MenuItem>,
-            ]}
-            {user?.role === "user" && (
-              <MenuItem key="user-cancel" onClick={() => {
-                handleMenuClose();
-                handleOpenDialog(params.row);
-              }}>
-                Cancel Appointment
-              </MenuItem>
-            )}
-          </Menu>
-        </Box>
-      ),
-    },
-  ];
 
   if (isLoading) {
     return (
@@ -473,293 +133,24 @@ const AppointmentsBase = () => {
       </Tabs>
 
       {activeTab === 0 && (
-        <Box sx={{ height: 650, width: "100%" }}>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: isSmallScreen ? "flex-start" : "flex-end",
-              mb: 2,
-            }}
-          >
-            {(user?.role === "user" || user?.role === "staff") && (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => navigate("/appointments/create")}
-              >
-                Create New Appointment
-              </Button>
-            )}
-          </Box>
-          <DataGrid
-            rows={currentAppointments}
-            columns={columns}
-            rowCount={currentAppointments.length}
-            loading={isLoading}
-            paginationMode="client"
-            pageSizeOptions={[15, 30, 50]}
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            disableSelectionOnClick
-          />
-          
-          {/* Cancel Confirmation Dialog */}
-          <Dialog
-            open={openDialog}
-            onClose={handleCloseDialog}
-            aria-labelledby="alert-dialog-title"
-            aria-describedby="alert-dialog-description"
-          >
-            <DialogTitle id="alert-dialog-title">
-              Cancel Appointment
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText id="alert-dialog-description">
-                Are you sure you want to cancel the appointment for {selectedAppointment?.firstName} {selectedAppointment?.lastName}?
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseDialog} color="primary">
-                No
-              </Button>
-              <Button
-                onClick={handleCancel}
-                color="secondary"
-                autoFocus
-              >
-                Yes, Cancel
-              </Button>
-            </DialogActions>
-          </Dialog>
-          
-          {/* Status Change Confirmation Dialog */}
-          <Dialog
-            open={statusChangeDialog.open}
-            onClose={cancelStatusChange}
-            aria-labelledby="status-change-dialog-title"
-          >
-            <DialogTitle id="status-change-dialog-title">
-              Confirm Status Change
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText>
-                Are you sure you want to change this appointment's status to "{statusChangeDialog.newStatus}"?
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={cancelStatusChange} color="primary">
-                Cancel
-              </Button>
-              <Button onClick={confirmStatusChange} color="secondary" autoFocus>
-                Confirm
-              </Button>
-            </DialogActions>
-          </Dialog>
-          
-          <AppointmentDetailsModal
-            open={openDetailsModal}
-            onClose={() => setOpenDetailsModal(false)}
-            appointment={selectedAppointment}
-          />
-        </Box>
+        <CurrentAppointments
+          appointmentsData={appointmentsData}
+          isLoading={isLoading}
+          refetch={refetch}
+          user={user}
+          alert={alert}
+          setAlert={setAlert}
+        />
       )}
 
       {activeTab === 1 && (
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2, justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-              {(user?.role === "admin" || user?.role === "staff") && (
-                <>
-                  <TextField
-                    label="Filter by Name"
-                    variant="outlined"
-                    size="small"
-                    value={nameFilter}
-                    onChange={(e) => setNameFilter(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    label="Filter by Email"
-                    variant="outlined"
-                    size="small"
-                    value={emailFilter}
-                    onChange={(e) => setEmailFilter(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    label="Filter by Phone"
-                    variant="outlined"
-                    size="small"
-                    value={phoneFilter}
-                    onChange={(e) => setPhoneFilter(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </>
-              )}
-              <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  displayEmpty
-                  inputProps={{ 'aria-label': 'Filter by Status' }}
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="Completed">Completed</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
-                  <MenuItem value="No Arrival">No Arrival</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Filter by Booked Date"
-                type="date"
-                variant="outlined"
-                size="small"
-                InputLabelProps={{ shrink: true }}
-                value={bookedDateFilter}
-                onChange={(e) => setBookedDateFilter(e.target.value)}
-              />
-              <TextField
-                label="Filter by Appointment Date"
-                type="date"
-                variant="outlined"
-                size="small"
-                InputLabelProps={{ shrink: true }}
-                value={appointmentDateFilter}
-                onChange={(e) => setAppointmentDateFilter(e.target.value)}
-              />
-              <Button 
-                variant="outlined" 
-                onClick={() => {
-                  setNameFilter("");
-                  setEmailFilter("");
-                  setPhoneFilter("");
-                  setServiceFilter("");
-                  setPriceFilter("");
-                  setStatusFilter("");
-                  setBookedDateFilter("");
-                  setAppointmentDateFilter("");
-                }}
-              >
-                Clear Filters
-              </Button>
-            </Box>
-          </Box>
-
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 650 }} aria-label="appointment history table" size="small">
-              <TableHead>
-                <TableRow>
-                  {(user?.role === "admin" || user?.role === "staff") && (
-                    <>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>Full Name</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>Email</TableCell>
-                      <TableCell sx={{ fontSize: '0.75rem' }}>Phone</TableCell>
-                    </>
-                  )}
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Service</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Category</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Price</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Notes</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Rating</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Booked At</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Appointment At</TableCell>
-                  <TableCell sx={{ fontSize: '0.75rem' }}>Status</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredHistoryAppointments
-                  .slice(historyPage * historyRowsPerPage, historyPage * historyRowsPerPage + historyRowsPerPage)
-                  .map((appointment) => (
-                  <TableRow key={appointment.id}>
-                    {(user?.role === "admin" || user?.role === "staff") && (
-                      <>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{`${appointment.firstName} ${appointment.lastName}`}</TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{appointment.email}</TableCell>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{appointment.contactNumber}</TableCell>
-                      </>
-                    )}
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      <ServiceName serviceId={appointment.serviceType} />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      <ServiceCategoryName categoryId={appointment.serviceCategory} />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      <ServicePrice serviceId={appointment.serviceType} />
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>{appointment.additionalNotes || "N/A"}</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      {appointment.review ? `${appointment.review.rating}/5` : 'N/A'}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>{dayjs(appointment.bookedAt).format("MMM D, YYYY h:mm A")}</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>{dayjs(appointment.appointmentDateTime).format("MMM D, YYYY h:mm A")}</TableCell>
-                    <TableCell sx={{ fontSize: '0.75rem' }}>
-                      <Chip 
-                        label={appointment.status} 
-                        color={
-                          appointment.status === "Completed" ? "success" :
-                          appointment.status === "Cancelled" ? "error" : 
-                          appointment.status === "No Arrival" ? "warning" : "default"
-                        } 
-                        size="small"
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              <TableFooter>
-                <TableRow>
-                  <TablePagination
-                    rowsPerPageOptions={[15, 30, 50]}
-                    colSpan={(user?.role === "admin" || user?.role === "staff") ? 11 : 8}
-                    count={filteredHistoryAppointments.length}
-                    rowsPerPage={historyRowsPerPage}
-                    page={historyPage}
-                    onPageChange={handleHistoryPageChange}
-                    onRowsPerPageChange={handleHistoryRowsPerPageChange}
-                  />
-                </TableRow>
-              </TableFooter>
-            </Table>
-          </TableContainer>
-        </Box>
+        <AppointmentHistory
+          appointmentsData={appointmentsData}
+          user={user}
+        />
       )}
     </DashboardLayout>
   );
-};
-
-const ServiceName = ({ serviceId }) => {
-  const { data: service } = useFetchServiceByIdQuery(serviceId);
-  return service ? service.title : "Loading...";
-};
-
-const ServicePrice = ({ serviceId }) => {
-  const { data: service } = useFetchServiceByIdQuery(serviceId);
-  return service ? `₱${service.price}` : "Loading...";
-};
-
-const ServiceCategoryName = ({ categoryId }) => {
-  const { data: category } = useFetchServiceCategoryByIdQuery(categoryId);
-  return category ? category.name : "Loading...";
 };
 
 export default AppointmentsBase;
