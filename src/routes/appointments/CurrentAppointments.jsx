@@ -106,21 +106,6 @@ const CurrentAppointments = ({
         dayjs(params.row.appointmentDateTime).format("DD/MM/YYYY HH:mm"),
     },
     {
-      field: "status",
-      headerName: "Status",
-      width: 120,
-      renderCell: (params) => (
-        <Badge
-          badgeContent={params.row.status}
-          color={
-            params.row.status === "Upcoming" ? "primary" : 
-            params.row.status === "Rescheduled" ? "warning" : "secondary"
-          }
-          sx={{ padding: "5px 20px" }}
-        />
-      ),
-    },
-    {
       field: "actions",
       headerName: "Actions",
       width: 200,

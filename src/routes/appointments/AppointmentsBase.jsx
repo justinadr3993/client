@@ -4,6 +4,7 @@ import {
   Typography,
   Tabs,
   Tab,
+  Button,
 } from "@mui/material";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -16,6 +17,7 @@ import DashboardLayout from "../../layouts/DashboardLayout";
 import { useSelector } from "react-redux";
 import CurrentAppointments from "./CurrentAppointments";
 import AppointmentHistory from "./AppointmentHistory";
+import RequestedAppointments from "./RequestedAppointments";
 
 const AppointmentsBase = () => {
   const navigate = useNavigate();
@@ -128,11 +130,25 @@ const AppointmentsBase = () => {
       </Typography>
 
       <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
+        {(user?.role === "admin" || user?.role === "staff") && (
+          <Tab label="Requested Appointments" />
+        )}
         <Tab label="Current Appointments" />
         <Tab label="Appointment History" />
       </Tabs>
 
-      {activeTab === 0 && (
+      {activeTab === 0 && (user?.role === "admin" || user?.role === "staff") && (
+        <RequestedAppointments
+          appointmentsData={appointmentsData}
+          isLoading={isLoading}
+          refetch={refetch}
+          user={user}
+          alert={alert}
+          setAlert={setAlert}
+        />
+      )}
+
+      {activeTab === ((user?.role === "admin" || user?.role === "staff") ? 1 : 0) && (
         <CurrentAppointments
           appointmentsData={appointmentsData}
           isLoading={isLoading}
@@ -143,7 +159,7 @@ const AppointmentsBase = () => {
         />
       )}
 
-      {activeTab === 1 && (
+      {activeTab === ((user?.role === "admin" || user?.role === "staff") ? 2 : 1) && (
         <AppointmentHistory
           appointmentsData={appointmentsData}
           user={user}

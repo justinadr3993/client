@@ -174,15 +174,19 @@ const AppointmentForm = ({ appointmentToEdit }) => {
       ...data,
       appointmentDateTime: slot,
       userId: appointmentToEdit ? appointmentToEdit.userId : user.id,
+      status: 'Requested',
     };
 
-    // If editing an upcoming appointment and date/time changed, set status to Rescheduled
     if (appointmentToEdit && appointmentToEdit.status === 'Upcoming') {
       const originalDateTime = dayjs(appointmentToEdit.appointmentDateTime);
       const newDateTime = dayjs(slot);
       if (!originalDateTime.isSame(newDateTime)) {
         appointmentData.status = 'Rescheduled';
       }
+    }
+
+    if ((user?.role === 'admin' || user?.role === 'staff') && !appointmentToEdit) {
+      appointmentData.status = 'Upcoming';
     }
 
     try {
@@ -198,7 +202,11 @@ const AppointmentForm = ({ appointmentToEdit }) => {
           : "Appointment updated successfully!";
       } else {
         await createAppointment(appointmentData).unwrap();
-        alertMessage = "Appointment booked successfully!";
+        if (user?.role === 'admin' || user?.role === 'staff') {
+          alertMessage = "Appointment created successfully!";
+        } else {
+          alertMessage = "Appointment requested successfully! It will be reviewed by our staff.";
+        }
       }
 
       navigate("/appointments", {
@@ -221,7 +229,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
       setAlert({
         type: "error",
         message: `Error occurred while ${
-          appointmentToEdit ? "updating" : "booking"
+          appointmentToEdit ? "updating" : user?.role === 'admin' || user?.role === 'staff' ? "creating" : "requesting"
         } the appointment: ${error.data?.message || error.message}`,
       });
     }

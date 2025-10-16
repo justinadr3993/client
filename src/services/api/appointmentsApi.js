@@ -29,6 +29,20 @@ export const appointmentsApi = createApi({
       }),
       invalidatesTags: ["Appointment"],
     }),
+    acceptAppointment: builder.mutation({
+      query: (id) => ({
+        url: `/appointments/${id}/accept`,
+        method: "PATCH",
+      }),
+      invalidatesTags: ["Appointment"],
+    }),
+    rejectAppointment: builder.mutation({
+      query: (id) => ({
+        url: `/appointments/${id}/reject`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Appointment"],
+    }),
     fetchAllAppointments: builder.query({
       query: ({ page, limit, status, date }) => {
         const params = new URLSearchParams();
@@ -74,6 +88,8 @@ export const {
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
   useDeleteAppointmentMutation,
+  useAcceptAppointmentMutation,
+  useRejectAppointmentMutation,
   useFetchAllAppointmentsQuery,
   useFetchAppointmentsByUserQuery,
   useFetchAppointmentsForStaffQuery,
