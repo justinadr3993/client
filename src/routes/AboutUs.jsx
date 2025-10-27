@@ -1,0 +1,15 @@
+import Footer from "../components/Footer/Footer";
+import Header from "../components/Header/Header";
+import BookNowCTASection from "../sections/BookNowCTASection/BookNowCTASection";
+import AboutUsSection from "../sections/AboutUsSection/AboutUsSection";
+
+export default function AboutUs() {
+  return (
+    <>
+      <Header />
+      <AboutUsSection />
+      <BookNowCTASection />
+      <Footer />
+    </>
+  );
+}
