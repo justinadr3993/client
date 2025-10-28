@@ -12,6 +12,7 @@ import {
   DialogContentText,
   DialogTitle,
   useMediaQuery,
+  Alert,
 } from "@mui/material";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DataGrid } from "@mui/x-data-grid";
@@ -53,7 +54,7 @@ const CurrentAppointments = ({
 
   const [updateAppointment] = useUpdateAppointmentMutation();
 
-  // Filter for current appointments (Upcoming and Rescheduled)
+  // filter for current appointments (Upcoming and Rescheduled)
   const currentAppointments = useMemo(
     () =>
       (appointmentsData?.results || [])
@@ -212,6 +213,18 @@ const CurrentAppointments = ({
       }).unwrap();
       refetch();
       setStatusChangeDialog({ open: false, appointmentId: null, newStatus: null });
+      
+      if (statusChangeDialog.newStatus === 'No Arrival') {
+        setAlert({
+          message: "Appointment marked as No Arrival. User has been red tagged and restricted from booking for 3 days.",
+          severity: "warning",
+        });
+      } else {
+        setAlert({
+          message: `Appointment status updated to ${statusChangeDialog.newStatus} successfully!`,
+          severity: "success",
+        });
+      }
     } catch (error) {
       setAlert({
         message: `Error updating status: ${error.message}`,
@@ -336,7 +349,16 @@ const CurrentAppointments = ({
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to change this appointment's status to "{statusChangeDialog.newStatus}"?
+            {statusChangeDialog.newStatus === 'No Arrival' ? (
+              <Box>
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  This action will red tag the user and restrict them from booking new appointments for 3 days.
+                </Alert>
+                Are you sure you want to mark this appointment as "No Arrival"?
+              </Box>
+            ) : (
+              `Are you sure you want to change this appointment's status to "${statusChangeDialog.newStatus}"?`
+            )}
           </DialogContentText>
         </DialogContent>
         <DialogActions>

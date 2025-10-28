@@ -57,8 +57,20 @@ const schema = yup.object().shape({
     .string()
     .nullable()
     .required("Please select a time slot"),
-  downPayment: yup.string().trim().optional(),
-  transactionReferenceNo: yup.string().trim().optional(),
+  downPayment: yup
+    .string()
+    .trim()
+    .required("Down payment is required")
+    .test('is-valid-amount', 'Please enter a valid amount', value => {
+      if (!value) return false;
+      const amount = parseFloat(value);
+      return !isNaN(amount) && amount >= 0;
+    }),
+  transactionReferenceNo: yup
+    .string()
+    .trim()
+    .required("Transaction reference number is required")
+    .min(3, "Transaction reference number must be at least 3 characters"),
 });
 
 const AppointmentForm = ({ appointmentToEdit }) => {
@@ -80,6 +92,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
@@ -115,7 +128,18 @@ const AppointmentForm = ({ appointmentToEdit }) => {
     limit: 1000,
   });
 
+  // Watch the downPayment field to conditionally require transaction reference
+  const downPaymentValue = watch("downPayment");
+
   useEffect(() => {
+    
+    if (user?.isRedTagged && user?.redTagExpiresAt && dayjs().isBefore(dayjs(user.redTagExpiresAt))) {
+      setAlert({
+        type: "error",
+        message: "Your account is temporarily restricted from booking appointments due to previous no-show incidents. Please contact support.",
+      });
+    }
+
     if (appointmentToEdit) {
       const {
         firstName,
@@ -146,7 +170,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
     } else if (selectedSlot) {
       setValue("appointmentDateTime", selectedSlot);
     }
-  }, [appointmentToEdit, selectedSlot, setValue]);
+  }, [appointmentToEdit, selectedSlot, setValue, user]);
 
   useEffect(() => {
     if (selectedCategory) {
@@ -237,12 +261,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
       setSelectedCategory("");
       setSlot(null);
     } catch (error) {
-      setAlert({
-        type: "error",
-        message: `Error occurred while ${
-          appointmentToEdit ? "updating" : user?.role === 'admin' || user?.role === 'staff' ? "creating" : "requesting"
-        } the appointment: ${error.data?.message || error.message}`,
-      });
+      //
     }
   };
 
@@ -443,8 +462,9 @@ const AppointmentForm = ({ appointmentToEdit }) => {
                   helperText={
                     errors.downPayment 
                       ? errors.downPayment.message 
-                      : "Deposits will not be refunded if the customer did not arrive."
+                      : "Deposits will not be refunded if the customer did not arrive"
                   }
+                  required
                   InputProps={{
                     readOnly: !!appointmentToEdit,
                     startAdornment: (
@@ -473,7 +493,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
                   label="Transaction Reference No."
                   fullWidth
                   error={!!errors.transactionReferenceNo}
-                  helperText={errors.transactionReferenceNo ? errors.transactionReferenceNo.message : ""}
+                  required
                   InputProps={{
                     readOnly: !!appointmentToEdit,
                   }}

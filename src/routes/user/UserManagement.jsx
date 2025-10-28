@@ -9,12 +9,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Chip,
+  Alert,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useFetchUsersQuery, useDeleteUserMutation } from "../../services/api/usersApi";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import FadeAlert from "../../components/FadeAlert/FadeAlert";
+import dayjs from "dayjs";
 
 const UserManagement = () => {
   const navigate = useNavigate();
@@ -89,7 +92,22 @@ const UserManagement = () => {
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
-        return `${params.row.firstName} ${params.row.lastName}`;
+        const isRedTagged = params.row.isRedTagged;
+        const isRestricted = isRedTagged && params.row.redTagExpiresAt && dayjs().isBefore(dayjs(params.row.redTagExpiresAt));
+        
+        return (
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography 
+              sx={{ 
+                color: isRedTagged ? 'error.main' : 'inherit',
+                fontWeight: isRedTagged ? 'bold' : 'normal'
+              }}
+            >
+              {params.row.firstName} {params.row.lastName}
+            </Typography>
+            
+          </Box>
+        );
       },
     },
     {
@@ -105,6 +123,27 @@ const UserManagement = () => {
       width: 120,
       flex: 0.5,
       minWidth: 120,
+    },
+    {
+      field: "redTagStatus",
+      headerName: "Red Tag Status",
+      width: 180,
+      flex: 0.7,
+      minWidth: 180,
+      renderCell: (params) => {
+        if (!params.row.isRedTagged) {
+          return "Clean";
+        }
+        
+        const isRestricted = params.row.redTagExpiresAt && dayjs().isBefore(dayjs(params.row.redTagExpiresAt));
+        
+        if (isRestricted) {
+          const daysLeft = dayjs(params.row.redTagExpiresAt).diff(dayjs(), 'day');
+          return `Restricted (${daysLeft + 1} days left)`;
+        } else {
+          return "Red Tagged (Expired)";
+        }
+      },
     },
     {
       field: "actions",
@@ -157,6 +196,8 @@ const UserManagement = () => {
       <Typography variant="h4" gutterBottom>
         Manage Users
       </Typography>
+      
+      
       <Box sx={{ height: 650, width: "100%" }}>
         <Box
           sx={{

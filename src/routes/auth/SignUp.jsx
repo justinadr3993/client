@@ -78,7 +78,7 @@ export default function SignUp() {
       if (result) {
         setAlert({
           type: "success",
-          message: result.message || "Registration successful! Verification email sent. Please check your inbox.",
+          message: result.message || "Verification email sent. Please check your inbox.",
         });
         
         // Redirect to login after 3 seconds
