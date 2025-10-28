@@ -128,18 +128,9 @@ const AppointmentForm = ({ appointmentToEdit }) => {
     limit: 1000,
   });
 
-  // Watch the downPayment field to conditionally require transaction reference
   const downPaymentValue = watch("downPayment");
 
   useEffect(() => {
-    
-    if (user?.isRedTagged && user?.redTagExpiresAt && dayjs().isBefore(dayjs(user.redTagExpiresAt))) {
-      setAlert({
-        type: "error",
-        message: "Your account is temporarily restricted from booking appointments due to previous no-show incidents. Please contact support.",
-      });
-    }
-
     if (appointmentToEdit) {
       const {
         firstName,

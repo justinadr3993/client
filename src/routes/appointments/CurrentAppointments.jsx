@@ -1,3 +1,4 @@
+// CurrentAppointments.jsx - Updated with days left in error message
 import { useState, useMemo, useRef } from "react";
 import {
   Box,
@@ -24,6 +25,7 @@ import { useFetchServiceByIdQuery } from "../../services/api/servicesApi";
 import { useFetchServiceCategoryByIdQuery } from "../../services/api/serviceCategoriesApi";
 import dayjs from "dayjs";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import { useSelector } from "react-redux";
 
 const CurrentAppointments = ({ 
   appointmentsData, 
@@ -34,6 +36,7 @@ const CurrentAppointments = ({
   setAlert 
 }) => {
   const navigate = useNavigate();
+  const currentUser = useSelector((state) => state.auth.user);
   const isSmallScreen = useMediaQuery((theme) => theme.breakpoints.down("md"));
   
   const [paginationModel, setPaginationModel] = useState({
@@ -51,8 +54,35 @@ const CurrentAppointments = ({
   });
   const [anchorEl, setAnchorEl] = useState(null);
   const [currentAppointment, setCurrentAppointment] = useState(null);
+  const [redTagAlert, setRedTagAlert] = useState(null);
 
   const [updateAppointment] = useUpdateAppointmentMutation();
+
+  // Check if user is red tagged and calculate days left
+  const redTagInfo = useMemo(() => {
+    if (currentUser?.isRedTagged && currentUser?.redTagExpiresAt && dayjs().isBefore(dayjs(currentUser.redTagExpiresAt))) {
+      const daysLeft = dayjs(currentUser.redTagExpiresAt).diff(dayjs(), 'day');
+      return {
+        isRedTagged: true,
+        daysLeft: daysLeft + 1 // Add 1 to include the current day
+      };
+    }
+    return {
+      isRedTagged: false,
+      daysLeft: 0
+    };
+  }, [currentUser]);
+
+  const handleCreateNewAppointment = () => {
+    if (redTagInfo.isRedTagged) {
+      setRedTagAlert({
+        type: "error",
+        message: `Your account is temporarily restricted from booking appointments due to previous no-show incidents. Restricted ${redTagInfo.daysLeft} days left.`,
+      });
+    } else {
+      navigate("/appointments/create");
+    }
+  };
 
   // filter for current appointments (Upcoming and Rescheduled)
   const currentAppointments = useMemo(
@@ -280,6 +310,12 @@ const CurrentAppointments = ({
 
   return (
     <Box sx={{ height: 650, width: "100%" }}>
+      {redTagAlert && (
+        <Alert severity={redTagAlert.type} sx={{ mb: 2 }}>
+          {redTagAlert.message}
+        </Alert>
+      )}
+      
       <Box
         sx={{
           display: "flex",
@@ -291,7 +327,7 @@ const CurrentAppointments = ({
           <Button
             variant="contained"
             color="primary"
-            onClick={() => navigate("/appointments/create")}
+            onClick={handleCreateNewAppointment}
           >
             Create New Appointment
           </Button>
@@ -380,4 +416,4 @@ const CurrentAppointments = ({
   );
 };
 
-export default CurrentAppointments;
+export default CurrentAppointments; 

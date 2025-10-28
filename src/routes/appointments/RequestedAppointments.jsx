@@ -1,3 +1,4 @@
+// RequestedAppointments.jsx - Updated with days left in error message
 import { useState, useMemo } from "react";
 import {
   Box,
@@ -10,6 +11,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Alert,
 } from "@mui/material";
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { DataGrid } from "@mui/x-data-grid";
@@ -22,6 +24,8 @@ import { useFetchServiceByIdQuery } from "../../services/api/servicesApi";
 import { useFetchServiceCategoryByIdQuery } from "../../services/api/serviceCategoriesApi";
 import dayjs from "dayjs";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 
 const RequestedAppointments = ({ 
   appointmentsData, 
@@ -31,6 +35,8 @@ const RequestedAppointments = ({
   alert,
   setAlert 
 }) => {
+  const navigate = useNavigate();
+  const currentUser = useSelector((state) => state.auth.user);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 100,
@@ -45,10 +51,37 @@ const RequestedAppointments = ({
     type: '', // 'accept' or 'reject' for staff/admin, 'cancel' for users
     appointmentId: null,
   });
+  const [redTagAlert, setRedTagAlert] = useState(null);
 
   const [acceptAppointment] = useAcceptAppointmentMutation();
   const [rejectAppointment] = useRejectAppointmentMutation();
   const [updateAppointment] = useUpdateAppointmentMutation();
+
+  // Check if user is red tagged and calculate days left
+  const redTagInfo = useMemo(() => {
+    if (currentUser?.isRedTagged && currentUser?.redTagExpiresAt && dayjs().isBefore(dayjs(currentUser.redTagExpiresAt))) {
+      const daysLeft = dayjs(currentUser.redTagExpiresAt).diff(dayjs(), 'day');
+      return {
+        isRedTagged: true,
+        daysLeft: daysLeft + 1 // Add 1 to include the current day
+      };
+    }
+    return {
+      isRedTagged: false,
+      daysLeft: 0
+    };
+  }, [currentUser]);
+
+  const handleCreateNewAppointment = () => {
+    if (redTagInfo.isRedTagged) {
+      setRedTagAlert({
+        type: "error",
+        message: `Your account is temporarily restricted from booking appointments due to previous no-show incidents. Restricted ${redTagInfo.daysLeft} days left.`,
+      });
+    } else {
+      navigate("/appointments/create");
+    }
+  };
 
   // Filter for requested appointments
   const requestedAppointments = useMemo(
@@ -274,12 +307,18 @@ const RequestedAppointments = ({
 
   return (
     <Box sx={{ height: 650, width: "100%" }}>
+      {redTagAlert && (
+        <Alert severity={redTagAlert.type} sx={{ mb: 2 }}>
+          {redTagAlert.message}
+        </Alert>
+      )}
+      
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         {user?.role === "user" && (
           <Button
             variant="contained"
             color="primary"
-            onClick={() => window.location.href = "/appointments/create"}
+            onClick={handleCreateNewAppointment}
           >
             CREATE NEW APPOINTMENT
           </Button>
