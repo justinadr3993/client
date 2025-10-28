@@ -48,9 +48,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import dayjs from 'dayjs';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
@@ -83,20 +87,36 @@ const StockAnalytics = () => {
     setTimeRange(newValue);
   };
 
-  // Filter history data based on selected date range
+  // Filter history data based on selected date range with timezone adjustment
   const filteredHistory = useMemo(() => {
     if (!history) return [];
 
     return history.filter(item => {
-      const itemDate = dayjs(item.date);
+      // Convert the date from API to Philippines timezone for comparison
+      let itemDate;
+      
+      if (item.date.includes('-')) {
+        // Handle YYYY-MM-DD or YYYY-MM format
+        if (item.date.length === 10) { // YYYY-MM-DD
+          itemDate = dayjs.tz(item.date, 'Asia/Manila');
+        } else { // YYYY-MM
+          itemDate = dayjs.tz(`${item.date}-01`, 'Asia/Manila');
+        }
+      } else {
+        itemDate = dayjs.tz(item.date, 'Asia/Manila');
+      }
       
       switch (timeRange) {
         case 'week':
-          return itemDate.isSameOrAfter(customStartDate) && itemDate.isSameOrBefore(customEndDate);
+          const startWeek = customStartDate.tz('Asia/Manila').startOf('day');
+          const endWeek = customEndDate.tz('Asia/Manila').endOf('day');
+          return itemDate.isSameOrAfter(startWeek) && itemDate.isSameOrBefore(endWeek);
         case 'month':
-          return itemDate.isSame(customDate, 'month');
+          const selectedMonth = customDate.tz('Asia/Manila');
+          return itemDate.isSame(selectedMonth, 'month');
         case 'year':
-          return itemDate.isSame(customDate, 'year');
+          const selectedYear = customDate.tz('Asia/Manila');
+          return itemDate.isSame(selectedYear, 'year');
         default:
           return true;
       }
@@ -109,7 +129,7 @@ const StockAnalytics = () => {
     const groupedData = {};
     
     filteredHistory.forEach(item => {
-      // Use the date from the API response directly
+      // Use the date from the API response directly (now in correct timezone)
       const dateKey = item.date;
       
       if (!groupedData[dateKey]) {
@@ -359,9 +379,6 @@ const StockAnalytics = () => {
                 Stock Movement Trends ({timeRange})
                 <Typography variant="subtitle2" color="textSecondary">
                   {formatDateRange()}
-                </Typography>
-                <Typography variant="caption" color="textSecondary" display="block">
-                  Showing {chartData.length} days of data • Click on data points for details
                 </Typography>
               </Typography>
               
