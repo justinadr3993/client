@@ -23,6 +23,7 @@ import {
   Alert,
   AlertTitle,
   Fade,
+  InputAdornment,
 } from "@mui/material";
 import dayjs from "dayjs";
 import * as yup from "yup";
@@ -56,6 +57,8 @@ const schema = yup.object().shape({
     .string()
     .nullable()
     .required("Please select a time slot"),
+  downPayment: yup.string().trim().optional(),
+  transactionReferenceNo: yup.string().trim().optional(),
 });
 
 const AppointmentForm = ({ appointmentToEdit }) => {
@@ -70,7 +73,6 @@ const AppointmentForm = ({ appointmentToEdit }) => {
   const [slot, setSlot] = useState(selectedSlot || null);
   const [alert, setAlert] = useState({ type: "", message: "" });
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [filteredServices, setFilteredServices] = useState([]);
 
   const {
     control,
@@ -88,6 +90,8 @@ const AppointmentForm = ({ appointmentToEdit }) => {
       serviceCategory: "",
       serviceType: "",
       additionalNotes: "",
+      downPayment: "",
+      transactionReferenceNo: "",
       userId: user ? user.id : null,
       appointmentDateTime: slot,
     },
@@ -95,6 +99,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
 
   const { data: categories = [] } = useFetchServiceCategoriesQuery();
   const { data: services = [] } = useFetchServicesQuery();
+  const [filteredServices, setFilteredServices] = useState([]);
 
   const [createAppointment, { isLoading: isCreating }] =
     useCreateAppointmentMutation();
@@ -120,6 +125,8 @@ const AppointmentForm = ({ appointmentToEdit }) => {
         serviceType,
         serviceCategory,
         additionalNotes,
+        downPayment,
+        transactionReferenceNo,
         appointmentDateTime,
       } = appointmentToEdit;
 
@@ -130,6 +137,8 @@ const AppointmentForm = ({ appointmentToEdit }) => {
       setValue("serviceType", serviceType);
       setValue("serviceCategory", serviceCategory);
       setValue("additionalNotes", additionalNotes);
+      setValue("downPayment", downPayment || "");
+      setValue("transactionReferenceNo", transactionReferenceNo || "");
       setSelectedDay(dayjs(appointmentDateTime));
       setSlot(dayjs(appointmentDateTime).toISOString());
       setValue("appointmentDateTime", dayjs(appointmentDateTime).toISOString());
@@ -221,6 +230,8 @@ const AppointmentForm = ({ appointmentToEdit }) => {
         serviceCategory: "",
         serviceType: "",
         additionalNotes: "",
+        downPayment: "",
+        transactionReferenceNo: "",
         appointmentDateTime: null,
       });
       setSelectedCategory("");
@@ -414,6 +425,59 @@ const AppointmentForm = ({ appointmentToEdit }) => {
                     readOnly: true,
                   }}
                   variant="filled"
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Controller
+              name="downPayment"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Down Payment (GCash No. 0932 927 1164)"
+                  fullWidth
+                  error={!!errors.downPayment}
+                  helperText={
+                    errors.downPayment 
+                      ? errors.downPayment.message 
+                      : "Deposits will not be refunded if the customer did not arrive."
+                  }
+                  InputProps={{
+                    readOnly: !!appointmentToEdit,
+                    startAdornment: (
+                      <InputAdornment position="start">₱</InputAdornment>
+                    ),
+                  }}
+                  variant={appointmentToEdit ? "filled" : "outlined"}
+                  FormHelperTextProps={{
+                    sx: {
+                      color: errors.downPayment ? 'error.main' : 'warning.main',
+                      fontWeight: errors.downPayment ? 'normal' : 'medium'
+                    }
+                  }}
+                />
+              )}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Controller
+              name="transactionReferenceNo"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Transaction Reference No."
+                  fullWidth
+                  error={!!errors.transactionReferenceNo}
+                  helperText={errors.transactionReferenceNo ? errors.transactionReferenceNo.message : ""}
+                  InputProps={{
+                    readOnly: !!appointmentToEdit,
+                  }}
+                  variant={appointmentToEdit ? "filled" : "outlined"}
                 />
               )}
             />

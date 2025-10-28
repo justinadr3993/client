@@ -254,15 +254,6 @@ const RequestedAppointments = ({
     }
   };
 
-  const getConfirmButtonColor = (type) => {
-    switch (type) {
-      case 'accept': return "success";
-      case 'reject': return "error";
-      case 'cancel': return "warning";
-      default: return "primary";
-    }
-  };
-
   const getConfirmButtonText = (type) => {
     switch (type) {
       case 'accept': return 'Accept';
@@ -327,7 +318,7 @@ const RequestedAppointments = ({
           </Button>
           <Button 
             onClick={confirmAction} 
-            color={getConfirmButtonColor(actionDialog.type)} 
+            color="secondary"
             autoFocus
           >
             {getConfirmButtonText(actionDialog.type)}

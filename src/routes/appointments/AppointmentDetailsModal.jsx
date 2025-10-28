@@ -70,6 +70,24 @@ const AppointmentDetailsModal = ({ open, onClose, appointment }) => {
           </Typography>
         </Box>
 
+        {(appointment.downPayment || appointment.transactionReferenceNo) && (
+          <Box mb={2}>
+            <Typography variant="subtitle1" gutterBottom>
+              Payment Information
+            </Typography>
+            {appointment.downPayment && (
+              <Typography variant="body2">
+                <strong>Down Payment:</strong> ₱{appointment.downPayment}
+              </Typography>
+            )}
+            {appointment.transactionReferenceNo && (
+              <Typography variant="body2">
+                <strong>Transaction Reference No.:</strong> {appointment.transactionReferenceNo}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         {appointment.additionalNotes && (
           <Box>
             <Typography variant="subtitle1" gutterBottom>
@@ -90,4 +108,4 @@ const AppointmentDetailsModal = ({ open, onClose, appointment }) => {
   );
 };
 
-export default AppointmentDetailsModal;
+export default AppointmentDetailsModal; 
