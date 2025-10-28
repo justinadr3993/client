@@ -447,7 +447,7 @@ const AppointmentForm = ({ appointmentToEdit }) => {
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Down Payment (GCash No. 0932 927 1164)"
+                  label="Down Payment (GCash/Maya No. 0932 927 1164)"
                   fullWidth
                   error={!!errors.downPayment}
                   helperText={
