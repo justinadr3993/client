@@ -36,7 +36,7 @@ export default function StaffDashboard() {
         />
         <DashboardCard
           icon={InventoryIcon}
-          title="Stock Management"
+          title="Stock"
           to="/manage-stocks"
         />
         <DashboardCard

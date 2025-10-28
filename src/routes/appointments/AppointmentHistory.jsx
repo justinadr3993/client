@@ -32,9 +32,8 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
   const [serviceFilter, setServiceFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [priceFilter, setPriceFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [bookedDateFilter, setBookedDateFilter] = useState("");
   const [appointmentDateFilter, setAppointmentDateFilter] = useState("");
 
   // Filter for history appointments (Completed, Cancelled, No Arrival)
@@ -63,16 +62,18 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
       }
     }
 
-    if (statusFilter) {
+    if (serviceFilter) {
       filtered = filtered.filter(appt => 
-        appt.status === statusFilter
+        appt.serviceType === serviceFilter
       );
     }
-    if (bookedDateFilter) {
+
+    if (categoryFilter) {
       filtered = filtered.filter(appt => 
-        dayjs(appt.createdAt).format("YYYY-MM-DD") === bookedDateFilter
+        appt.serviceCategory === categoryFilter
       );
     }
+
     if (appointmentDateFilter) {
       filtered = filtered.filter(appt => 
         dayjs(appt.appointmentDateTime).format("YYYY-MM-DD") === appointmentDateFilter
@@ -80,7 +81,7 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
     }
 
     return filtered;
-  }, [appointmentsData, nameFilter, emailFilter, phoneFilter, statusFilter, bookedDateFilter, appointmentDateFilter, user?.role]);
+  }, [appointmentsData, nameFilter, emailFilter, phoneFilter, serviceFilter, categoryFilter, appointmentDateFilter, user?.role]);
 
   const handleHistoryPageChange = (event, newPage) => {
     setHistoryPage(newPage);
@@ -105,6 +106,25 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
     const { data: category } = useFetchServiceCategoryByIdQuery(categoryId);
     return category ? category.name : "Loading...";
   };
+
+  // Get unique services and categories for filter dropdowns
+  const uniqueServices = useMemo(() => {
+    if (!appointmentsData?.results) return [];
+    const services = appointmentsData.results
+      .filter(appt => ["Completed", "Cancelled", "No Arrival"].includes(appt.status))
+      .map(appt => appt.serviceType)
+      .filter((value, index, self) => self.indexOf(value) === index);
+    return services;
+  }, [appointmentsData]);
+
+  const uniqueCategories = useMemo(() => {
+    if (!appointmentsData?.results) return [];
+    const categories = appointmentsData.results
+      .filter(appt => ["Completed", "Cancelled", "No Arrival"].includes(appt.status))
+      .map(appt => appt.serviceCategory)
+      .filter((value, index, self) => self.indexOf(value) === index);
+    return categories;
+  }, [appointmentsData]);
 
   return (
     <Box sx={{ mt: 2 }}>
@@ -158,26 +178,34 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
           )}
           <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
             <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
               displayEmpty
-              inputProps={{ 'aria-label': 'Filter by Status' }}
+              inputProps={{ 'aria-label': 'Filter by Service' }}
             >
-              <MenuItem value="">All Statuses</MenuItem>
-              <MenuItem value="Completed">Completed</MenuItem>
-              <MenuItem value="Cancelled">Cancelled</MenuItem>
-              <MenuItem value="No Arrival">No Arrival</MenuItem>
+              <MenuItem value="">All Services</MenuItem>
+              {uniqueServices.map(serviceId => (
+                <MenuItem key={serviceId} value={serviceId}>
+                  <ServiceName serviceId={serviceId} />
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
-          <TextField
-            label="Filter by Booked Date"
-            type="date"
-            variant="outlined"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            value={bookedDateFilter}
-            onChange={(e) => setBookedDateFilter(e.target.value)}
-          />
+          <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              displayEmpty
+              inputProps={{ 'aria-label': 'Filter by Category' }}
+            >
+              <MenuItem value="">All Categories</MenuItem>
+              {uniqueCategories.map(categoryId => (
+                <MenuItem key={categoryId} value={categoryId}>
+                  <ServiceCategoryName categoryId={categoryId} />
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             label="Filter by Appointment Date"
             type="date"
@@ -194,9 +222,8 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
               setEmailFilter("");
               setPhoneFilter("");
               setServiceFilter("");
+              setCategoryFilter("");
               setPriceFilter("");
-              setStatusFilter("");
-              setBookedDateFilter("");
               setAppointmentDateFilter("");
             }}
           >
@@ -221,7 +248,6 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
               <TableCell sx={{ fontSize: '0.75rem' }}>Price</TableCell>
               <TableCell sx={{ fontSize: '0.75rem' }}>Notes</TableCell>
               <TableCell sx={{ fontSize: '0.75rem' }}>Rating</TableCell>
-              <TableCell sx={{ fontSize: '0.75rem' }}>Booked At</TableCell>
               <TableCell sx={{ fontSize: '0.75rem' }}>Appointment At</TableCell>
               <TableCell sx={{ fontSize: '0.75rem' }}>Status</TableCell>
             </TableRow>
@@ -251,7 +277,6 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
                 <TableCell sx={{ fontSize: '0.75rem' }}>
                   {appointment.review ? `${appointment.review.rating}/5` : 'N/A'}
                 </TableCell>
-                <TableCell sx={{ fontSize: '0.75rem' }}>{dayjs(appointment.bookedAt).format("MMM D, YYYY h:mm A")}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem' }}>{dayjs(appointment.appointmentDateTime).format("MMM D, YYYY h:mm A")}</TableCell>
                 <TableCell sx={{ fontSize: '0.75rem' }}>
                   <Chip 
@@ -272,7 +297,7 @@ const AppointmentHistory = ({ appointmentsData, user }) => {
             <TableRow>
               <TablePagination
                 rowsPerPageOptions={[15, 30, 50]}
-                colSpan={(user?.role === "admin" || user?.role === "staff") ? 11 : 8}
+                colSpan={(user?.role === "admin" || user?.role === "staff") ? 9 : 6}
                 count={filteredHistoryAppointments.length}
                 rowsPerPage={historyRowsPerPage}
                 page={historyPage}
