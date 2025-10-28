@@ -70,53 +70,65 @@ const StockAnalytics = () => {
   
   const { 
     data: analytics, 
-    isLoading: analyticsLoading 
+    isLoading: analyticsLoading,
+    refetch: refetchAnalytics
   } = useGetStockAnalyticsQuery();
   
   const { 
     data: history, 
-    isLoading: historyLoading 
+    isLoading: historyLoading,
+    refetch: refetchHistory
   } = useGetStockHistoryQuery(timeRange);
 
   const { 
     data: stocksData,
-    isLoading: stocksLoading 
+    isLoading: stocksLoading,
+    refetch: refetchStocks
   } = useFetchStocksQuery({ limit: 1000 });
 
   const handleTimeRangeChange = (event, newValue) => {
     setTimeRange(newValue);
   };
 
-  // Filter history data based on selected date range with timezone adjustment
+  // Refetch all data when timeframe changes
+  React.useEffect(() => {
+    refetchHistory();
+    refetchAnalytics();
+    refetchStocks();
+  }, [timeRange, refetchHistory, refetchAnalytics, refetchStocks]);
+
+  // Filter history data based on selected date range
   const filteredHistory = useMemo(() => {
     if (!history) return [];
 
     return history.filter(item => {
-      // Convert the date from API to Philippines timezone for comparison
+      // Parse the date from API (already in Asia/Manila timezone from server)
       let itemDate;
       
       if (item.date.includes('-')) {
         // Handle YYYY-MM-DD or YYYY-MM format
         if (item.date.length === 10) { // YYYY-MM-DD
-          itemDate = dayjs.tz(item.date, 'Asia/Manila');
+          itemDate = dayjs(item.date, 'Asia/Manila');
         } else { // YYYY-MM
-          itemDate = dayjs.tz(`${item.date}-01`, 'Asia/Manila');
+          itemDate = dayjs(`${item.date}-01`, 'Asia/Manila');
         }
       } else {
-        itemDate = dayjs.tz(item.date, 'Asia/Manila');
+        itemDate = dayjs(item.date, 'Asia/Manila');
       }
       
       switch (timeRange) {
         case 'week':
-          const startWeek = customStartDate.tz('Asia/Manila').startOf('day');
-          const endWeek = customEndDate.tz('Asia/Manila').endOf('day');
+          const startWeek = customStartDate.startOf('day');
+          const endWeek = customEndDate.endOf('day');
           return itemDate.isSameOrAfter(startWeek) && itemDate.isSameOrBefore(endWeek);
         case 'month':
-          const selectedMonth = customDate.tz('Asia/Manila');
-          return itemDate.isSame(selectedMonth, 'month');
+          const selectedMonth = customDate.startOf('month');
+          const endOfMonth = customDate.endOf('month');
+          return itemDate.isSameOrAfter(selectedMonth) && itemDate.isSameOrBefore(endOfMonth);
         case 'year':
-          const selectedYear = customDate.tz('Asia/Manila');
-          return itemDate.isSame(selectedYear, 'year');
+          const selectedYear = customDate.startOf('year');
+          const endOfYear = customDate.endOf('year');
+          return itemDate.isSameOrAfter(selectedYear) && itemDate.isSameOrBefore(endOfYear);
         default:
           return true;
       }
@@ -129,7 +141,6 @@ const StockAnalytics = () => {
     const groupedData = {};
     
     filteredHistory.forEach(item => {
-      // Use the date from the API response directly (now in correct timezone)
       const dateKey = item.date;
       
       if (!groupedData[dateKey]) {
@@ -581,43 +592,48 @@ const StockAnalytics = () => {
               <Typography variant="h6" gutterBottom>
                 Low Stock Items (Quantity ≤ 5)
               </Typography>
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Item Name</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Price</TableCell>
-                      <TableCell>Quantity</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {lowStockItems.length > 0 ? (
-                      lowStockItems.map((item) => (
-                        <TableRow key={item._id} hover>
+              
+              {lowStockItems.length === 0 ? (
+                <Typography variant="body2" color="textSecondary">
+                  No low stock items. Great job!
+                </Typography>
+              ) : (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Item Name</TableCell>
+                        <TableCell>Category</TableCell>
+                        <TableCell align="right">Current Quantity</TableCell>
+                        <TableCell align="right">Price</TableCell>
+                        <TableCell>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {lowStockItems.map((item) => (
+                        <TableRow key={item._id}>
                           <TableCell>{item.type}</TableCell>
                           <TableCell>{item.category}</TableCell>
-                          <TableCell>
+                          <TableCell align="right">{item.quantity}</TableCell>
+                          <TableCell align="right">
                             {new Intl.NumberFormat('en-PH', {
                               style: 'currency',
                               currency: 'PHP'
                             }).format(item.price)}
                           </TableCell>
-                          <TableCell sx={{ color: item.quantity <= 2 ? 'error.main' : 'warning.main' }}>
-                            {item.quantity}
+                          <TableCell>
+                            <Chip 
+                              label={item.quantity === 0 ? 'Out of Stock' : 'Low Stock'} 
+                              color={item.quantity === 0 ? 'error' : 'warning'} 
+                              size="small"
+                            />
                           </TableCell>
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center">
-                          No low stock items
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Paper>
           </Grid>
         </Grid>

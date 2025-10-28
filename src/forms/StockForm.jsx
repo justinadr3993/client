@@ -78,11 +78,13 @@ export default function StockForm({ stockToEdit }) {
       if (stockToEdit) {
         const quantityChange = data.quantity - stockToEdit.quantity;
         
+        // Update stock with new quantity
         await updateStock({ 
           id: stockToEdit.id, 
           type: data.type,
           category: data.category,
-          price: data.price
+          price: data.price,
+          quantity: data.quantity // Include quantity in update
         }).unwrap();
 
         // If quantity changed, record it in history
