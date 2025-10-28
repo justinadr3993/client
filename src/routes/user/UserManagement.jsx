@@ -118,6 +118,13 @@ const UserManagement = () => {
       minWidth: 250,
     },
     {
+      field: "contactNumber",
+      headerName: "Phone",
+      width: 150,
+      flex: 0.7,
+      minWidth: 150,
+    },
+    {
       field: "role",
       headerName: "Role",
       width: 120,
