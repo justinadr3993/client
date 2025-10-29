@@ -22,7 +22,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Chip
+  Chip,
 } from '@mui/material';
 import { 
   useGetStockAnalyticsQuery,
@@ -31,8 +31,6 @@ import {
 } from '../../services/api/stocksApi';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -97,38 +95,32 @@ const StockAnalytics = () => {
     refetchStocks();
   }, [timeRange, refetchHistory, refetchAnalytics, refetchStocks]);
 
-  // Filter history data based on selected date range
+  // Filter history data based on selected date range - FIXED TIMEZONE HANDLING
   const filteredHistory = useMemo(() => {
     if (!history) return [];
 
     return history.filter(item => {
-      // Parse the date from API (already in Asia/Manila timezone from server)
-      let itemDate;
+      // Parse the actualDate from API (stored as UTC in MongoDB)
+      const itemDate = dayjs(item.actualDate); // This is the UTC date from server
       
-      if (item.date.includes('-')) {
-        // Handle YYYY-MM-DD or YYYY-MM format
-        if (item.date.length === 10) { // YYYY-MM-DD
-          itemDate = dayjs(item.date, 'Asia/Manila');
-        } else { // YYYY-MM
-          itemDate = dayjs(`${item.date}-01`, 'Asia/Manila');
-        }
-      } else {
-        itemDate = dayjs(item.date, 'Asia/Manila');
-      }
-      
+      // Convert filter dates to UTC for proper comparison
       switch (timeRange) {
+        case 'day':
+          const selectedDayStart = customDate.startOf('day').utc();
+          const selectedDayEnd = customDate.endOf('day').utc();
+          return itemDate.isSameOrAfter(selectedDayStart) && itemDate.isSameOrBefore(selectedDayEnd);
         case 'week':
-          const startWeek = customStartDate.startOf('day');
-          const endWeek = customEndDate.endOf('day');
+          const startWeek = customStartDate.startOf('day').utc();
+          const endWeek = customEndDate.endOf('day').utc();
           return itemDate.isSameOrAfter(startWeek) && itemDate.isSameOrBefore(endWeek);
         case 'month':
-          const selectedMonth = customDate.startOf('month');
-          const endOfMonth = customDate.endOf('month');
-          return itemDate.isSameOrAfter(selectedMonth) && itemDate.isSameOrBefore(endOfMonth);
+          const selectedMonthStart = customDate.startOf('month').utc();
+          const selectedMonthEnd = customDate.endOf('month').utc();
+          return itemDate.isSameOrAfter(selectedMonthStart) && itemDate.isSameOrBefore(selectedMonthEnd);
         case 'year':
-          const selectedYear = customDate.startOf('year');
-          const endOfYear = customDate.endOf('year');
-          return itemDate.isSameOrAfter(selectedYear) && itemDate.isSameOrBefore(endOfYear);
+          const selectedYearStart = customDate.startOf('year').utc();
+          const selectedYearEnd = customDate.endOf('year').utc();
+          return itemDate.isSameOrAfter(selectedYearStart) && itemDate.isSameOrBefore(selectedYearEnd);
         default:
           return true;
       }
@@ -141,6 +133,7 @@ const StockAnalytics = () => {
     const groupedData = {};
     
     filteredHistory.forEach(item => {
+      // Use the formatted date from server (already in Asia/Manila timezone)
       const dateKey = item.date;
       
       if (!groupedData[dateKey]) {
@@ -193,6 +186,8 @@ const StockAnalytics = () => {
 
   const formatDateRange = () => {
     switch (timeRange) {
+      case 'day':
+        return customDate.format('MMMM D, YYYY');
       case 'week':
         return `${customStartDate.format('MMM D')} - ${customEndDate.format('MMM D, YYYY')}`;
       case 'month':
@@ -247,6 +242,9 @@ const StockAnalytics = () => {
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return monthNames[parseInt(month) - 1];
+    } else if (timeRange === 'day') {
+      // For day view, show time (if available) or just the date
+      return date.split('-')[2]; // Show just the day
     } else {
       // For week/month view, show day/month
       const parts = date.split('-');
@@ -294,12 +292,22 @@ const StockAnalytics = () => {
             variant="scrollable"
             scrollButtons="auto"
           >
+            <Tab label="Day" value="day" />
             <Tab label="Week" value="week" />
             <Tab label="Month" value="month" />
             <Tab label="Year" value="year" />
           </Tabs>
           
           <Box sx={{ mt: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+            {timeRange === 'day' && (
+              <DatePicker
+                label="Select Date"
+                value={customDate}
+                onChange={(newValue) => setCustomDate(newValue)}
+                renderInput={(params) => <TextField {...params} />}
+              />
+            )}
+            
             {timeRange === 'week' && (
               <>
                 <DatePicker
@@ -383,7 +391,75 @@ const StockAnalytics = () => {
           </Grid>
         </Grid>
 
-
+        {/* Stock Movement Trends */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Stock Movement Trends - {formatDateRange()}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+                Click on any point in the graph to view detailed stock movements for that date
+              </Typography>
+              
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart
+                    data={chartData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    onClick={handleLineClick}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date" 
+                      tickFormatter={formatXAxisLabel}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value, name) => [
+                        value, 
+                        name === 'restock' ? 'Restock' : 'Usage'
+                      ]}
+                      labelFormatter={(label) => `Date: ${label}`}
+                    />
+                    <Legend 
+                      formatter={(value) => value === 'restock' ? 'Restock' : 'Usage'}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="restock" 
+                      stroke="#00C49F" 
+                      strokeWidth={3}
+                      dot={{ r: 6 }}
+                      activeDot={{ r: 8, onClick: handleLineClick }}
+                      name="restock"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="usage" 
+                      stroke="#FF8042" 
+                      strokeWidth={3}
+                      dot={{ r: 6 }}
+                      activeDot={{ r: 8, onClick: handleLineClick }}
+                      name="usage"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <Box 
+                  display="flex" 
+                  justifyContent="center" 
+                  alignItems="center" 
+                  height={200}
+                >
+                  <Typography variant="body1" color="textSecondary">
+                    No stock movement data available for the selected period
+                  </Typography>
+                </Box>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
 
         {/* Low Stock Items */}
         {lowStockItems.length > 0 && (
@@ -432,6 +508,104 @@ const StockAnalytics = () => {
             </Grid>
           </Grid>
         )}
+
+        {/* Stock Movement Details Modal - Updated to show stock items in tables */}
+        <Dialog
+          open={openLineDetails}
+          onClose={() => setOpenLineDetails(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            Stock Movement Details - {selectedLineData?.date}
+          </DialogTitle>
+          <DialogContent>
+            {selectedLineData && (
+              <>
+                {/* Restocked Items */}
+                {selectedLineData.restockDetails.length > 0 && (
+                  <>
+                    <Typography variant="h6" sx={{ mt: 1, mb: 2 }}>
+                      Restocked Items
+                    </Typography>
+                    
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Stock Item</TableCell>
+                            <TableCell>Category</TableCell>
+                            <TableCell align="right">Quantity</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {selectedLineData.restockDetails.map((detail, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                {getStockName(detail.stockId, detail.stockType)}
+                              </TableCell>
+                              <TableCell>
+                                {getStockCategory(detail.stockId, detail.stockCategory)}
+                              </TableCell>
+                              <TableCell align="right" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+                                +{detail.change}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+
+                {/* Usage Items */}
+                {selectedLineData.usageDetails.length > 0 && (
+                  <>
+                    <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>
+                      Usage Items
+                    </Typography>
+                    
+                    <TableContainer>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow>
+                            <TableCell>Stock Item</TableCell>
+                            <TableCell>Category</TableCell>
+                            <TableCell align="right">Quantity</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {selectedLineData.usageDetails.map((detail, index) => (
+                            <TableRow key={index}>
+                              <TableCell>
+                                {getStockName(detail.stockId, detail.stockType)}
+                              </TableCell>
+                              <TableCell>
+                                {getStockCategory(detail.stockId, detail.stockCategory)}
+                              </TableCell>
+                              <TableCell align="right" sx={{ color: 'error.main', fontWeight: 'bold' }}>
+                                -{detail.change}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                )}
+
+                {selectedLineData.restockDetails.length === 0 && selectedLineData.usageDetails.length === 0 && (
+                  <Typography variant="body1" color="textSecondary" align="center" sx={{ mt: 2 }}>
+                    No stock movement data available for this date.
+                  </Typography>
+                )}
+              </>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenLineDetails(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </LocalizationProvider>
   );
