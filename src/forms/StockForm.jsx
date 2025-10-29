@@ -78,7 +78,7 @@ export default function StockForm({ stockToEdit }) {
       if (stockToEdit) {
         const quantityChange = data.quantity - stockToEdit.quantity;
         
-        // Update stock with new quantity
+        // Only update stock with new quantity - the recordStockChange will be handled by the service
         await updateStock({ 
           id: stockToEdit.id, 
           type: data.type,
@@ -87,18 +87,6 @@ export default function StockForm({ stockToEdit }) {
           quantity: data.quantity // Include quantity in update
         }).unwrap();
 
-        // If quantity changed, record it in history
-        if (quantityChange !== 0) {
-          const operation = quantityChange > 0 ? 'restock' : 'usage';
-          const changeAmount = Math.abs(quantityChange);
-          
-          await recordChange({
-            id: stockToEdit.id,
-            change: changeAmount,
-            operation
-          }).unwrap();
-        }
-        
         message = "Stock item updated successfully!";
       } else {
         const { quantity, ...newStock } = data;

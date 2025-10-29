@@ -270,6 +270,7 @@ const StockAnalytics = () => {
   // Prepare data for charts
   const chartData = prepareChartData();
   const lowStockItems = analytics?.lowStockItemsList || [];
+  const trends = analytics?.trends || [];
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -381,6 +382,49 @@ const StockAnalytics = () => {
             </Card>
           </Grid>
         </Grid>
+
+        {/* Operation Trends */}
+        {trends.length > 0 && (
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12}>
+              <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Operation Trends by Category
+                </Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Category</TableCell>
+                        <TableCell>Operation</TableCell>
+                        <TableCell align="right">Total Change</TableCell>
+                        <TableCell align="right">Average Change</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {trends.map((trend, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{trend.category}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={trend.operation} 
+                              color={trend.operation === 'restock' ? 'success' : 'warning'} 
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell align="right">{trend.totalChange}</TableCell>
+                          <TableCell align="right">
+                            {Math.round(trend.averageChange * 100) / 100}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </Grid>
+          </Grid>
+        )}
 
         {/* Stock Movement Trends */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -576,7 +620,6 @@ const StockAnalytics = () => {
                     No usage recorded for this date.
                   </Typography>
                 )}
-
               </>
             )}
           </DialogContent>
@@ -586,18 +629,13 @@ const StockAnalytics = () => {
         </Dialog>
 
         {/* Low Stock Items */}
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Low Stock Items (Quantity ≤ 5)
-              </Typography>
-              
-              {lowStockItems.length === 0 ? (
-                <Typography variant="body2" color="textSecondary">
-                  No low stock items. Great job!
+        {lowStockItems.length > 0 && (
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12}>
+              <Paper elevation={3} sx={{ p: 3 }}>
+                <Typography variant="h6" gutterBottom color="error">
+                  Low Stock Items (≤5)
                 </Typography>
-              ) : (
                 <TableContainer>
                   <Table>
                     <TableHead>
@@ -606,7 +644,7 @@ const StockAnalytics = () => {
                         <TableCell>Category</TableCell>
                         <TableCell align="right">Current Quantity</TableCell>
                         <TableCell align="right">Price</TableCell>
-                        <TableCell>Status</TableCell>
+                        <TableCell align="right">Status</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -621,10 +659,10 @@ const StockAnalytics = () => {
                               currency: 'PHP'
                             }).format(item.price)}
                           </TableCell>
-                          <TableCell>
+                          <TableCell align="right">
                             <Chip 
-                              label={item.quantity === 0 ? 'Out of Stock' : 'Low Stock'} 
-                              color={item.quantity === 0 ? 'error' : 'warning'} 
+                              label={item.quantity === 0 ? "Out of Stock" : "Low Stock"} 
+                              color={item.quantity === 0 ? "error" : "warning"} 
                               size="small"
                             />
                           </TableCell>
@@ -633,10 +671,10 @@ const StockAnalytics = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              )}
-            </Paper>
+              </Paper>
+            </Grid>
           </Grid>
-        </Grid>
+        )}
       </Box>
     </LocalizationProvider>
   );
